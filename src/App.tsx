@@ -1,35 +1,17 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import {
-  getPublishedNews,
-  searchPublishedNews,
-} from "./lib/newsService";
+import { getCurrentUser, signOut } from "./lib/authService";
+import { getMyProfile } from "./lib/profileService";
+import { getPublishedNews, searchPublishedNews, NewsRecord } from "./lib/newsService";
+import LoginPage from "./pages/LoginPage";
+import AdminDashboard from "./pages/admin/Dashboard";
+import MemberDashboard from "./pages/MemberDashboard";
 
-type News = {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt?: string | null;
-  content: string;
-  featured_image?: string | null;
-  published_at?: string | null;
-};
+type News = Pick<NewsRecord, "id" | "title" | "slug" | "excerpt" | "content" | "featured_image" | "published_at">;
+type Page = "home" | "news" | "about" | "contact" | "privacy" | "disclaimer" | "terms" | "login" | "admin" | "member";
+type Profile = { id: string; email: string | null; full_name: string | null; role: "admin" | "user" };
 
-type Page =
-  | "home"
-  | "news"
-  | "about"
-  | "contact"
-  | "privacy"
-  | "disclaimer"
-  | "terms";
-
-function formatDate(value?: string | null) {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "long",
-  }).format(new Date(value));
-}
+function formatDate(value?: string | null) { if (!value) return ""; return new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date(value)); }
 
 function App() {
   const [page, setPage] = useState<Page>("home");
@@ -37,344 +19,71 @@ function App() {
   const [selectedNews, setSelectedNews] = useState<News | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   async function loadNews(query = "") {
     setLoading(true);
-
-    const result = query.trim()
-      ? await searchPublishedNews(query)
-      : await getPublishedNews();
-
-    if (!result.error) {
-      setNews((result.data ?? []) as News[]);
-    }
-
+    const result = query.trim() ? await searchPublishedNews(query) : await getPublishedNews();
+    if (!result.error) setNews((result.data ?? []) as News[]);
     setLoading(false);
   }
 
-  useEffect(() => {
-    loadNews();
-  }, []);
-
-  function navigate(next: Page) {
-    setSelectedNews(null);
-    setPage(next);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  async function loadSession() {
+    const { user } = await getCurrentUser();
+    if (!user) { setProfile(null); setAuthLoading(false); return; }
+    const result = await getMyProfile();
+    if (!result.error && result.profile) setProfile(result.profile as Profile);
+    else setProfile(null);
+    setAuthLoading(false);
   }
 
-  function openNews(item: News) {
-    setSelectedNews(item);
-    setPage("news");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  useEffect(() => { loadNews(); loadSession(); }, []);
+
+  function navigate(next: Page) { setSelectedNews(null); setPage(next); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function openNews(item: News) { setSelectedNews(item); setPage("news"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+  async function logout() { await signOut(); setProfile(null); navigate("home"); }
+
+  function accountButton() {
+    if (authLoading) return null;
+    if (!profile) return <button className="nav-account" onClick={() => navigate("login")}>Masuk</button>;
+    if (profile.role === "admin") return <button className="nav-account" onClick={() => navigate("admin")}>Admin</button>;
+    return <button className="nav-account" onClick={() => navigate("member")}>Akun Anggota</button>;
   }
 
-  return (
-    <div className="site">
-      <header className="site-header">
-        <div className="container header-inner">
-          <button className="brand" onClick={() => navigate("home")}>
-            <span className="brand-mark">P</span>
-            <span>
-              <strong>Paguyuban Arisan Bani P3N</strong>
-              <small>Portal Informasi & Berita</small>
-            </span>
-          </button>
+  return <div className="site">
+    <header className="site-header"><div className="container header-inner">
+      <button className="brand" onClick={() => navigate("home")}><span className="brand-mark">P</span><span><strong>Paguyuban Arisan Bani P3N</strong><small>Portal Informasi & Berita</small></span></button>
+      <nav><button onClick={() => navigate("home")}>Beranda</button><button onClick={() => navigate("news")}>Berita</button><button onClick={() => navigate("about")}>Tentang</button><button onClick={() => navigate("contact")}>Kontak</button>{accountButton()}</nav>
+    </div></header>
 
-          <nav>
-            <button onClick={() => navigate("home")}>Beranda</button>
-            <button onClick={() => navigate("news")}>Berita</button>
-            <button onClick={() => navigate("about")}>Tentang</button>
-            <button onClick={() => navigate("contact")}>Kontak</button>
-          </nav>
-        </div>
-      </header>
+    <main>
+      {page === "login" && <LoginPage onBack={() => navigate("home")} />}
+      {page === "admin" && profile?.role === "admin" && <section className="section page-section"><div className="container"><AdminDashboard /></div></section>}
+      {page === "member" && profile?.role === "user" && <MemberDashboard name={profile.full_name ?? ""} email={profile.email} onLogout={logout} />}
+      {(page === "admin" || page === "member") && !profile && <LoginPage onBack={() => navigate("home")} />}
 
-      <main>
-        {page === "home" && (
-          <>
-            <section className="hero-section">
-              <div className="container hero-content">
-                <div>
-                  <span className="eyebrow">SELAMAT DATANG</span>
-                  <h1>
-                    Paguyuban Arisan
-                    <br />
-                    <span>Bani P3N</span>
-                  </h1>
-                  <p>
-                    Wadah informasi, komunikasi, silaturahmi, dan kegiatan
-                    bersama keluarga besar Paguyuban Arisan Bani P3N.
-                  </p>
-                  <div className="hero-actions">
-                    <button
-                      className="primary-button"
-                      onClick={() => navigate("news")}
-                    >
-                      Baca Berita
-                    </button>
-                    <button
-                      className="secondary-button"
-                      onClick={() => navigate("about")}
-                    >
-                      Tentang Paguyuban
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
+      {page === "home" && <><section className="hero-section"><div className="container hero-content"><div><span className="eyebrow">SELAMAT DATANG</span><h1>Paguyuban Arisan<br /><span>Bani P3N</span></h1><p>Wadah informasi, komunikasi, silaturahmi, dan kegiatan bersama keluarga besar Paguyuban Arisan Bani P3N.</p><div className="hero-actions"><button className="primary-button" onClick={() => navigate("news")}>Baca Berita</button><button className="secondary-button" onClick={() => navigate("about")}>Tentang Paguyuban</button></div></div></div></section><section className="section"><div className="container"><div className="section-heading"><div><span className="eyebrow">INFORMASI TERBARU</span><h2>Berita Paguyuban</h2></div><button className="text-button" onClick={() => navigate("news")}>Lihat semua →</button></div><NewsGrid news={news.slice(0, 6)} loading={loading} onOpen={openNews} /></div></section></>}
 
-            <section className="section">
-              <div className="container">
-                <div className="section-heading">
-                  <div>
-                    <span className="eyebrow">INFORMASI TERBARU</span>
-                    <h2>Berita Paguyuban</h2>
-                  </div>
-                  <button
-                    className="text-button"
-                    onClick={() => navigate("news")}
-                  >
-                    Lihat semua →
-                  </button>
-                </div>
+      {page === "news" && <section className="section page-section"><div className="container">{selectedNews ? <article className="article"><button className="back-button" onClick={() => setSelectedNews(null)}>← Kembali ke berita</button>{selectedNews.featured_image && <img className="article-image" src={selectedNews.featured_image} alt={selectedNews.title} />}<span className="eyebrow">BERITA PAGUYUBAN</span><h1>{selectedNews.title}</h1><div className="article-date">{formatDate(selectedNews.published_at)}</div>{selectedNews.excerpt && <p className="article-excerpt">{selectedNews.excerpt}</p>}<div className="article-content" dangerouslySetInnerHTML={{ __html: selectedNews.content }} /></article> : <><div className="section-heading"><div><span className="eyebrow">PUBLIKASI</span><h1>Berita Paguyuban</h1></div></div><form className="search-box" onSubmit={e => { e.preventDefault(); loadNews(search); }}><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari berita..." /><button className="primary-button" type="submit">Cari</button></form><NewsGrid news={news} loading={loading} onOpen={openNews} /></>}</div></section>}
 
-                <NewsGrid
-                  news={news.slice(0, 6)}
-                  loading={loading}
-                  onOpen={openNews}
-                />
-              </div>
-            </section>
-          </>
-        )}
+      {page === "about" && <InfoPage title="Tentang Paguyuban" eyebrow="TENTANG KAMI"><p>Paguyuban Arisan Bani P3N merupakan wadah kebersamaan untuk mempererat silaturahmi, berbagi informasi, serta mendukung kegiatan positif anggota dan keluarga besar paguyuban.</p></InfoPage>}
+      {page === "contact" && <InfoPage title="Kontak" eyebrow="HUBUNGI KAMI"><p>Untuk informasi kegiatan dan komunikasi dengan pengurus paguyuban, silakan gunakan kanal komunikasi resmi yang telah disediakan oleh pengurus.</p></InfoPage>}
+      {page === "privacy" && <InfoPage title="Kebijakan Privasi" eyebrow="LEGAL"><p>Website ini menghargai privasi pengunjung. Informasi yang dikumpulkan digunakan hanya untuk menjalankan layanan dan meningkatkan pengalaman pengguna.</p></InfoPage>}
+      {page === "disclaimer" && <InfoPage title="Disclaimer" eyebrow="LEGAL"><p>Informasi pada website ini disediakan untuk tujuan informasi umum. Pengelola berupaya menjaga keakuratan informasi namun tidak menjamin seluruh informasi selalu bebas dari kesalahan.</p></InfoPage>}
+      {page === "terms" && <InfoPage title="Syarat & Ketentuan" eyebrow="LEGAL"><p>Dengan menggunakan website ini, pengunjung menyetujui penggunaan website sesuai hukum yang berlaku dan tidak menyalahgunakan layanan maupun konten yang tersedia.</p></InfoPage>}
+    </main>
 
-        {page === "news" && (
-          <section className="section page-section">
-            <div className="container">
-              {selectedNews ? (
-                <article className="article">
-                  <button
-                    className="back-button"
-                    onClick={() => setSelectedNews(null)}
-                  >
-                    ← Kembali ke berita
-                  </button>
-
-                  {selectedNews.featured_image && (
-                    <img
-                      className="article-image"
-                      src={selectedNews.featured_image}
-                      alt={selectedNews.title}
-                    />
-                  )}
-
-                  <span className="eyebrow">BERITA PAGUYUBAN</span>
-                  <h1>{selectedNews.title}</h1>
-                  <div className="article-date">
-                    {formatDate(selectedNews.published_at)}
-                  </div>
-
-                  {selectedNews.excerpt && (
-                    <p className="article-excerpt">
-                      {selectedNews.excerpt}
-                    </p>
-                  )}
-
-                  <div
-                    className="article-content"
-                    dangerouslySetInnerHTML={{
-                      __html: selectedNews.content,
-                    }}
-                  />
-                </article>
-              ) : (
-                <>
-                  <div className="section-heading">
-                    <div>
-                      <span className="eyebrow">PUBLIKASI</span>
-                      <h1>Berita Paguyuban</h1>
-                    </div>
-                  </div>
-
-                  <form
-                    className="search-box"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      loadNews(search);
-                    }}
-                  >
-                    <input
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                      placeholder="Cari berita..."
-                    />
-                    <button className="primary-button" type="submit">
-                      Cari
-                    </button>
-                  </form>
-
-                  <NewsGrid
-                    news={news}
-                    loading={loading}
-                    onOpen={openNews}
-                  />
-                </>
-              )}
-            </div>
-          </section>
-        )}
-
-        {page === "about" && (
-          <InfoPage
-            title="Tentang Paguyuban"
-            eyebrow="TENTANG KAMI"
-          >
-            <p>
-              Paguyuban Arisan Bani P3N merupakan wadah kebersamaan untuk
-              mempererat silaturahmi, berbagi informasi, serta mendukung
-              kegiatan positif anggota dan keluarga besar paguyuban.
-            </p>
-          </InfoPage>
-        )}
-
-        {page === "contact" && (
-          <InfoPage title="Kontak" eyebrow="HUBUNGI KAMI">
-            <p>
-              Untuk informasi kegiatan dan komunikasi dengan pengurus
-              paguyuban, silakan gunakan kanal komunikasi resmi yang telah
-              disediakan oleh pengurus.
-            </p>
-          </InfoPage>
-        )}
-
-        {page === "privacy" && (
-          <InfoPage title="Kebijakan Privasi" eyebrow="LEGAL">
-            <p>
-              Website ini menghargai privasi pengunjung. Informasi yang
-              dikumpulkan digunakan hanya untuk menjalankan layanan dan
-              meningkatkan pengalaman pengguna.
-            </p>
-          </InfoPage>
-        )}
-
-        {page === "disclaimer" && (
-          <InfoPage title="Disclaimer" eyebrow="LEGAL">
-            <p>
-              Informasi pada website ini disediakan untuk tujuan informasi
-              umum. Pengelola berupaya menjaga keakuratan informasi namun
-              tidak menjamin seluruh informasi selalu bebas dari kesalahan.
-            </p>
-          </InfoPage>
-        )}
-
-        {page === "terms" && (
-          <InfoPage title="Syarat & Ketentuan" eyebrow="LEGAL">
-            <p>
-              Dengan menggunakan website ini, pengunjung menyetujui penggunaan
-              website sesuai hukum yang berlaku dan tidak menyalahgunakan
-              layanan maupun konten yang tersedia.
-            </p>
-          </InfoPage>
-        )}
-      </main>
-
-      <footer className="site-footer">
-        <div className="container footer-grid">
-          <div>
-            <strong>Paguyuban Arisan Bani P3N</strong>
-            <p>Portal informasi dan silaturahmi keluarga besar paguyuban.</p>
-          </div>
-
-          <div className="footer-links">
-            <button onClick={() => navigate("privacy")}>Privasi</button>
-            <button onClick={() => navigate("disclaimer")}>
-              Disclaimer
-            </button>
-            <button onClick={() => navigate("terms")}>
-              Syarat & Ketentuan
-            </button>
-          </div>
-        </div>
-
-        <div className="container copyright">
-          © {new Date().getFullYear()} Paguyuban Arisan Bani P3N.
-        </div>
-      </footer>
-    </div>
-  );
+    <footer className="site-footer"><div className="container footer-grid"><div><strong>Paguyuban Arisan Bani P3N</strong><p>Portal informasi dan silaturahmi keluarga besar paguyuban.</p></div><div className="footer-links"><button onClick={() => navigate("privacy")}>Privasi</button><button onClick={() => navigate("disclaimer")}>Disclaimer</button><button onClick={() => navigate("terms")}>Syarat & Ketentuan</button>{profile && <button onClick={logout}>Keluar</button>}</div></div><div className="container copyright">© {new Date().getFullYear()} Paguyuban Arisan Bani P3N.</div></footer>
+  </div>;
 }
 
-function NewsGrid({
-  news,
-  loading,
-  onOpen,
-}: {
-  news: News[];
-  loading: boolean;
-  onOpen: (news: News) => void;
-}) {
-  if (loading) {
-    return <div className="empty-state">Memuat berita...</div>;
-  }
-
-  if (!news.length) {
-    return (
-      <div className="empty-state">
-        Belum ada berita yang dipublikasikan.
-      </div>
-    );
-  }
-
-  return (
-    <div className="news-grid">
-      {news.map((item) => (
-        <article className="news-card" key={item.id}>
-          {item.featured_image ? (
-            <img src={item.featured_image} alt={item.title} />
-          ) : (
-            <div className="news-placeholder">P3N</div>
-          )}
-
-          <div className="news-card-body">
-            <div className="news-date">
-              {formatDate(item.published_at)}
-            </div>
-
-            <h3>{item.title}</h3>
-
-            {item.excerpt && <p>{item.excerpt}</p>}
-
-            <button
-              className="text-button"
-              onClick={() => onOpen(item)}
-            >
-              Baca selengkapnya →
-            </button>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
+function NewsGrid({ news, loading, onOpen }: { news: News[]; loading: boolean; onOpen: (news: News) => void }) {
+  if (loading) return <div className="empty-state">Memuat berita...</div>;
+  if (!news.length) return <div className="empty-state">Belum ada berita yang dipublikasikan.</div>;
+  return <div className="news-grid">{news.map(item => <article className="news-card" key={item.id}>{item.featured_image ? <img src={item.featured_image} alt={item.title} /> : <div className="news-placeholder">P3N</div>}<div className="news-card-body"><div className="news-date">{formatDate(item.published_at)}</div><h3>{item.title}</h3>{item.excerpt && <p>{item.excerpt}</p>}<button className="text-button" onClick={() => onOpen(item)}>Baca selengkapnya →</button></div></article>)}</div>;
 }
 
-function InfoPage({
-  title,
-  eyebrow,
-  children,
-}: {
-  title: string;
-  eyebrow: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="section page-section">
-      <div className="container content-page">
-        <span className="eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-        <div className="content-text">{children}</div>
-      </div>
-    </section>
-  );
-}
-
+function InfoPage({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) { return <section className="section page-section"><div className="container content-page"><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><div className="content-text">{children}</div></div></section>; }
 export default App;
