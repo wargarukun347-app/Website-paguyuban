@@ -1,0 +1,10 @@
+src/components/BeritaView.tsx
+src/components/ProfileView.tsx
+src/components/WinnerCertificateModal.tsx
+src/components/MemberNewsPortal.tsx
+src/components/LoginView.tsx
+src/components/PrayerTimesView.tsx
+src/App.tsx
+src/lib/authService.ts
+src/lib/firestoreService.ts
+src/lib/firebase.ts

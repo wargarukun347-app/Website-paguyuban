@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "paguyuban-schema-check",
+  "main": "worker/hyperdrive-schema-check.js",
+  "compatibility_date": "2026-09-05",
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "a19f45c7f6264770acbd486e834bc51c"
+    }
+  ]
+}

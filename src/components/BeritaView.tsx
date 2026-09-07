@@ -1,0 +1,1393 @@
+import React, { useEffect, useState } from 'react';
+import { PUBLIC_NEWS_AUTHOR } from '../lib/newsConstants';
+import { uploadImageToCloudinary } from '../lib/cloudinaryService';
+import {
+  deleteNewsFromFirestore,
+  getNewsCommentsFromFirestore,
+  getNewsFromFirestore,
+  getPublishedNewsFromFirestore,
+  saveNewsCommentToFirestore,
+  saveNewsToFirestore,
+  updateNewsInFirestore,
+  type NewsArticle,
+  type NewsComment,
+} from '../lib/firestoreService';
+
+interface BeritaViewProps {
+  isAdmin?: boolean;
+  currentUser?: {
+    id: string;
+    name: string;
+    email?: string;
+  } | null;
+  publicMode?: boolean;
+  publicSlug?: string | null;
+}
+
+const formatDate = (value: Date) => {
+  try {
+    return new Intl.DateTimeFormat('id-ID', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(value);
+  } catch {
+    return '-';
+  }
+};
+
+const createSlug = (value: string) => {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/[^a-z0-9\\s-]/g, '')
+    .trim()
+    .replace(/\\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 100);
+};
+
+const BeritaView: React.FC<BeritaViewProps> = ({
+  isAdmin = false,
+  currentUser = null,
+  publicMode = false,
+  publicSlug = null,
+}) => {
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [selectedNews, setSelectedNews] = useState<NewsArticle | null>(null);
+  const [comments, setComments] = useState<NewsComment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [commentSaving, setCommentSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const [category, setCategory] = useState('');
+  const [status, setStatus] = useState<'draft' | 'published'>('published');
+  const [commentText, setCommentText] = useState('');
+  const [guestName, setGuestName] = useState('');
+
+  const [editorMode, setEditorMode] = useState<'manual' | 'ai'>('manual');
+  const [aiTopic, setAiTopic] = useState('');
+  const [aiFacts, setAiFacts] = useState('');
+  const [aiTone, setAiTone] = useState('informatif, hangat, dan natural');
+  const [aiGenerating, setAiGenerating] = useState(false);
+
+  const [slug, setSlug] = useState('');
+  const [excerpt, setExcerpt] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
+  const [focusKeyword, setFocusKeyword] = useState('');
+  const [keywords, setKeywords] = useState('');
+  const [altText, setAltText] = useState('');
+  const [factCheckNotes, setFactCheckNotes] = useState<string[]>([]);
+
+  const loadNews = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const result =
+        publicMode || !isAdmin
+          ? await getPublishedNewsFromFirestore()
+          : await getNewsFromFirestore();
+
+      if (isAdmin && !publicMode) {
+        setNews(result);
+      } else {
+        setNews(result.filter((item) => item.status === 'published'));
+      }
+    } catch (err) {
+      console.error('Gagal memuat berita:', err);
+      setError('Berita belum dapat dimuat. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadNews();
+  }, [isAdmin, publicMode]);
+
+  useEffect(() => {
+    if (!publicMode || !publicSlug || news.length === 0) {
+      return;
+    }
+
+    const article = news.find(
+      (item) => item.slug === publicSlug
+    );
+
+    if (article) {
+      setSelectedNews(article);
+    }
+  }, [publicMode, publicSlug, news]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const siteName = 'Arisan Bani P3N - KUA Kedungbanteng';
+    const siteDescription =
+      'Informasi dan berita Paguyuban Bani P3N KUA Kecamatan Kedungbanteng Kabupaten Banyumas.';
+    const origin = window.location.origin;
+
+    const currentArticle =
+      publicMode && publicSlug
+        ? news.find((item) => item.slug === publicSlug)
+        : null;
+
+    const pageTitle = currentArticle
+      ? String(
+          currentArticle.seoTitle ||
+          currentArticle.title ||
+          siteName
+        ).trim()
+      : publicMode
+        ? 'Berita Paguyuban Bani P3N KUA Kedungbanteng'
+        : '';
+
+    const pageDescription = currentArticle
+      ? String(
+          currentArticle.metaDescription ||
+          currentArticle.excerpt ||
+          currentArticle.content ||
+          siteDescription
+        )
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 160)
+      : publicMode
+        ? siteDescription
+        : '';
+
+    if (!publicMode) {
+      return;
+    }
+
+    document.title = pageTitle;
+
+    const canonicalPath =
+      currentArticle?.slug
+        ? `/berita/${encodeURIComponent(currentArticle.slug)}`
+        : '/berita';
+
+    const canonicalUrl = `${origin}${canonicalPath}`;
+
+    const upsertMeta = (
+      selector: string,
+      attribute: string,
+      value: string
+    ) => {
+      let element = document.head.querySelector(
+        selector
+      ) as HTMLMetaElement | null;
+
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attribute, '');
+        document.head.appendChild(element);
+      }
+
+      element.setAttribute(attribute, selector.includes('property=') ? selector.match(/property="([^"]+)"/)?.[1] || attribute : selector.match(/name="([^"]+)"/)?.[1] || attribute);
+      element.setAttribute('content', value);
+    };
+
+    const setMetaName = (name: string, content: string) => {
+      let element = document.head.querySelector(
+        `meta[name="${name}"]`
+      ) as HTMLMetaElement | null;
+
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('name', name);
+        document.head.appendChild(element);
+      }
+
+      element.setAttribute('content', content);
+    };
+
+    const setMetaProperty = (
+      property: string,
+      content: string
+    ) => {
+      let element = document.head.querySelector(
+        `meta[property="${property}"]`
+      ) as HTMLMetaElement | null;
+
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute('property', property);
+        document.head.appendChild(element);
+      }
+
+      element.setAttribute('content', content);
+    };
+
+    setMetaName('description', pageDescription);
+
+    setMetaProperty('og:title', pageTitle);
+    setMetaProperty('og:description', pageDescription);
+    setMetaProperty('og:type', currentArticle ? 'article' : 'website');
+    setMetaProperty('og:url', canonicalUrl);
+
+    if (currentArticle?.imageUrl) {
+      setMetaProperty('og:image', currentArticle.imageUrl);
+    }
+
+    setMetaName(
+      'twitter:card',
+      currentArticle?.imageUrl ? 'summary_large_image' : 'summary'
+    );
+    setMetaName('twitter:title', pageTitle);
+    setMetaName('twitter:description', pageDescription);
+
+    if (currentArticle?.imageUrl) {
+      setMetaName('twitter:image', currentArticle.imageUrl);
+    }
+
+    let canonical = document.head.querySelector(
+      'link[rel="canonical"]'
+    ) as HTMLLinkElement | null;
+
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+
+    canonical.setAttribute('href', canonicalUrl);
+
+    return () => {
+      document.title = siteName;
+    };
+  }, [publicMode, publicSlug, news]);
+
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setImageUrl('');
+    setCategory('');
+    setStatus('published');
+
+    setEditorMode('manual');
+    setAiTopic('');
+    setAiFacts('');
+    setAiTone('informatif, hangat, dan natural');
+    setAiGenerating(false);
+
+    setSlug('');
+    setExcerpt('');
+    setSeoTitle('');
+    setMetaDescription('');
+    setFocusKeyword('');
+    setKeywords('');
+    setAltText('');
+    setFactCheckNotes([]);
+
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const handleGenerateAI = async () => {
+    if (!aiTopic.trim()) {
+      setError('Topik berita wajib diisi untuk membuat draf AI.');
+      return;
+    }
+
+    if (!aiFacts.trim()) {
+      setError(
+        'Fakta/informasi wajib diisi agar AI tidak mengarang fakta berita.'
+      );
+      return;
+    }
+
+    if (aiFacts.trim().length < 20) {
+      setError(
+        'Fakta/informasi terlalu singkat. Masukkan informasi yang cukup agar draf lebih akurat.'
+      );
+      return;
+    }
+
+    setAiGenerating(true);
+    setError('');
+    setFactCheckNotes([]);
+
+    try {
+      const response = await fetch('/api/ai/generate-news', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: aiTopic.trim(),
+          facts: aiFacts.trim(),
+          tone: aiTone.trim(),
+        }),
+      });
+
+      let payload: any = null;
+
+      try {
+        payload = await response.json();
+      } catch {
+        throw new Error(
+          'Server AI tidak mengembalikan respons JSON yang valid.'
+        );
+      }
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          payload?.error ||
+            'Draf AI gagal dibuat. Pastikan server AI tersedia.'
+        );
+      }
+
+      const result = payload.data || {};
+
+      setTitle(String(result.title || ''));
+      setContent(String(result.content || ''));
+      setCategory(String(result.category || ''));
+      setSlug(createSlug(String(result.slug || result.title || '')));
+      setExcerpt(String(result.excerpt || ''));
+      setSeoTitle(String(result.seoTitle || result.title || ''));
+      setMetaDescription(String(result.metaDescription || ''));
+      setFocusKeyword(String(result.focusKeyword || ''));
+      setKeywords(
+        Array.isArray(result.keywords)
+          ? result.keywords.filter(Boolean).join(', ')
+          : String(result.keywords || '')
+      );
+      setAltText(String(result.altText || ''));
+
+      setFactCheckNotes(
+        Array.isArray(result.factCheckNotes)
+          ? result.factCheckNotes.filter(Boolean).map(String)
+          : []
+      );
+
+      setStatus('draft');
+
+      setError(
+        'Draf AI berhasil dibuat. Periksa isi, fakta, gambar, dan SEO sebelum menyimpan atau menerbitkan.'
+      );
+    } catch (err: any) {
+      console.error('Gagal membuat draf AI:', err);
+
+      const message = String(
+        err?.message ||
+          'Draf AI gagal dibuat. Periksa koneksi dan ketersediaan server AI.'
+      );
+
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('fetch')
+      ) {
+        setError(
+          'Server AI belum tersedia di alamat website ini. Mode Tulis Manual tetap dapat digunakan.'
+        );
+      } else {
+        setError(message);
+      }
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!title.trim() || !content.trim()) {
+      setError('Judul dan isi berita wajib diisi.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const normalizedSlug = createSlug(
+        slug.trim() || title.trim()
+      );
+
+      if (!normalizedSlug) {
+        setError('Slug berita tidak dapat dibuat. Periksa judul berita.');
+        return;
+      }
+
+      const normalizedKeywords = keywords
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      if (editingId) {
+        await updateNewsInFirestore(editingId, {
+          title: title.trim(),
+          content: content.trim(),
+          imageUrl: imageUrl.trim(),
+          category: category.trim(),
+          status,
+          slug: normalizedSlug,
+          excerpt: excerpt.trim(),
+          seoTitle: seoTitle.trim() || title.trim(),
+          metaDescription: metaDescription.trim(),
+          focusKeyword: focusKeyword.trim(),
+          keywords: normalizedKeywords,
+          altText: altText.trim(),
+          factCheckNotes,
+          ...(status === 'published'
+            ? { publishedAt: new Date() }
+            : {}),
+        });
+      } else {
+        await saveNewsToFirestore({
+          title: title.trim(),
+          content: content.trim(),
+          imageUrl: imageUrl.trim(),
+          category: category.trim(),
+          status,
+          slug: normalizedSlug,
+          excerpt: excerpt.trim(),
+          seoTitle: seoTitle.trim() || title.trim(),
+          metaDescription: metaDescription.trim(),
+          focusKeyword: focusKeyword.trim(),
+          keywords: normalizedKeywords,
+          altText: altText.trim(),
+          factCheckNotes,
+          ...(status === 'published'
+            ? { publishedAt: new Date() }
+            : {}),
+          authorId: currentUser?.id || '',
+          authorName: PUBLIC_NEWS_AUTHOR,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      resetForm();
+      await loadNews();
+    } catch (err: any) {
+      console.error('Gagal menyimpan berita:', err);
+
+      const errorCode = err?.code || 'unknown';
+      const errorMessage = err?.message || 'Tidak ada pesan error dari Firebase.';
+
+      setError(
+        `Berita gagal disimpan. Kode: ${errorCode}. ${errorMessage}`
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      window.alert('File yang dipilih harus berupa gambar.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      window.alert('Ukuran gambar maksimal 5 MB.');
+      return;
+    }
+
+    try {
+      setImageUploading(true);
+      const url = await uploadImageToCloudinary(
+        file,
+        'paguyuban-bani-pin/berita'
+      );
+      setImageUrl(url);
+    } catch (err: any) {
+      console.error('Upload gambar berita gagal:', err);
+      window.alert(err?.message || 'Gagal mengunggah gambar berita.');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleEdit = (item: NewsArticle) => {
+    setEditingId(item.id);
+    setTitle(item.title);
+    setContent(item.content);
+    setImageUrl(item.imageUrl || '');
+    setCategory(item.category || '');
+    setStatus(item.status);
+
+    setEditorMode('manual');
+    setAiTopic('');
+    setAiFacts('');
+    setAiTone('informatif, hangat, dan natural');
+
+    setSlug(item.slug || createSlug(item.title));
+    setExcerpt(item.excerpt || '');
+    setSeoTitle(item.seoTitle || item.title);
+    setMetaDescription(item.metaDescription || '');
+    setFocusKeyword(item.focusKeyword || '');
+    setKeywords(
+      Array.isArray(item.keywords)
+        ? item.keywords.join(', ')
+        : ''
+    );
+    setAltText(item.altText || '');
+    setFactCheckNotes(item.factCheckNotes || []);
+
+    setShowForm(true);
+    setSelectedNews(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (item: NewsArticle) => {
+    const confirmed = window.confirm(
+      `Hapus berita "${item.title}"?\n\nKomentar pada berita ini juga akan dihapus.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      await deleteNewsFromFirestore(item.id);
+
+      if (selectedNews?.id === item.id) {
+        setSelectedNews(null);
+        setComments([]);
+      }
+
+      await loadNews();
+    } catch (err) {
+      console.error('Gagal menghapus berita:', err);
+      setError('Berita gagal dihapus.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openNews = (item: NewsArticle) => {
+    setSelectedNews(item);
+    setComments([]);
+    setCommentText('');
+    setGuestName('');
+    setError('');
+  };
+
+  useEffect(() => {
+    if (!selectedNews) {
+      setComments([]);
+      setCommentsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadComments = async () => {
+      setCommentsLoading(true);
+
+      try {
+        const result = await getNewsCommentsFromFirestore(selectedNews.id);
+
+        if (!cancelled) {
+          setComments(result);
+        }
+      } catch (err) {
+        console.error('Gagal memuat komentar:', err);
+
+        if (!cancelled) {
+          setError('Komentar belum dapat dimuat.');
+        }
+      } finally {
+        if (!cancelled) {
+          setCommentsLoading(false);
+        }
+      }
+    };
+
+    void loadComments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedNews]);
+
+  const handleComment = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!selectedNews || !commentText.trim()) {
+      return;
+    }
+
+    const userName = currentUser
+      ? currentUser.name || currentUser.email || 'Anggota'
+      : guestName.trim();
+
+    if (!userName) {
+      setError('Nama wajib diisi sebelum mengirim komentar.');
+      return;
+    }
+
+    setCommentSaving(true);
+    setError('');
+
+    try {
+      await saveNewsCommentToFirestore({
+        newsId: selectedNews.id,
+        userId: currentUser?.id || '',
+        userName,
+        comment: commentText.trim(),
+        createdAt: new Date(),
+      });
+
+      setCommentText('');
+
+      if (!currentUser) {
+        setGuestName('');
+      }
+
+      const result = await getNewsCommentsFromFirestore(selectedNews.id);
+      setComments(result);
+    } catch (err) {
+      console.error('Gagal menyimpan komentar:', err);
+      setError('Komentar gagal dikirim.');
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
+  if (selectedNews) {
+    return (
+      <div className="space-y-6">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedNews(null);
+            setComments([]);
+          }}
+          className="text-sm font-medium text-blue-600 hover:text-blue-800"
+        >
+          ← Kembali ke daftar berita
+        </button>
+
+        <article className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {selectedNews.imageUrl && (
+            <img
+              src={selectedNews.imageUrl}
+              alt={selectedNews.title}
+              className="max-h-[480px] w-full object-contain bg-gray-100"
+            />
+          )}
+
+          <div className="p-6">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              {selectedNews.category && (
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  {selectedNews.category}
+                </span>
+              )}
+
+              <span className="text-xs text-gray-500">
+                {formatDate(selectedNews.createdAt)}
+              </span>
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-800">
+              {selectedNews.title}
+            </h1>
+
+            <p className="mt-2 text-sm text-gray-500">
+              Oleh {isAdmin
+                ? (selectedNews.authorName || PUBLIC_NEWS_AUTHOR)
+                : PUBLIC_NEWS_AUTHOR}
+            </p>
+
+            <div className="mt-6 whitespace-pre-wrap text-sm leading-7 text-gray-700">
+              {selectedNews.content}
+            </div>
+          </div>
+        </article>
+
+        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Komentar
+          </h2>
+
+          <form onSubmit={handleComment} className="mt-4">
+            {!currentUser && (
+              <input
+                type="text"
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
+                placeholder="Nama Anda"
+                maxLength={100}
+                className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            )}
+
+            <textarea
+              value={commentText}
+              onChange={(event) => setCommentText(event.target.value)}
+              placeholder="Tulis komentar..."
+              rows={3}
+              maxLength={1000}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+
+            <button
+              type="submit"
+              disabled={
+                commentSaving ||
+                !commentText.trim() ||
+                (!currentUser && !guestName.trim())
+              }
+              className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {commentSaving ? 'Mengirim...' : 'Kirim Komentar'}
+            </button>
+          </form>
+
+          <div className="mt-6 space-y-4">
+            {commentsLoading ? (
+              <p className="text-sm text-gray-500">Memuat komentar...</p>
+            ) : comments.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                Belum ada komentar.
+              </p>
+            ) : (
+              comments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="rounded-lg bg-gray-50 p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {comment.userName}
+                    </p>
+
+                    <p className="text-xs text-gray-400">
+                      {formatDate(comment.createdAt)}
+                    </p>
+                  </div>
+
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                    {comment.comment}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            {isAdmin ? 'Berita' : 'Berita dan Informasi'}
+          </h1>
+          {isAdmin && (
+            <p className="mt-1 text-sm text-gray-500">
+              Kelola berita paguyuban.
+            </p>
+          )}
+        </div>
+
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Tambah Berita
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {isAdmin && showForm && (
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+        >
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">
+              {editingId ? 'Edit Berita' : 'Tambah Berita'}
+            </h2>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Batal
+            </button>
+          </div>
+
+          <div className="mb-6 rounded-lg border border-blue-100 bg-blue-50 p-4">
+            <p className="mb-3 text-sm font-semibold text-blue-900">
+              Cara Membuat Berita
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setEditorMode('ai')}
+                className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
+                  editorMode === 'ai'
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-blue-200 bg-white text-blue-800 hover:bg-blue-50'
+                }`}
+              >
+                <span className="block font-semibold">
+                  ✨ Buat dengan AI
+                </span>
+                <span
+                  className={`mt-1 block text-xs ${
+                    editorMode === 'ai'
+                      ? 'text-blue-100'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  AI membuat draf berdasarkan fakta yang Anda berikan.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEditorMode('manual')}
+                className={`rounded-lg border px-4 py-3 text-left text-sm transition ${
+                  editorMode === 'manual'
+                    ? 'border-gray-700 bg-gray-700 text-white'
+                    : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50'
+                }`}
+              >
+                <span className="block font-semibold">
+                  ✍️ Tulis Manual
+                </span>
+                <span
+                  className={`mt-1 block text-xs ${
+                    editorMode === 'manual'
+                      ? 'text-gray-200'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  Tulis dan edit berita sepenuhnya secara manual.
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {editorMode === 'ai' && (
+            <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <h3 className="text-sm font-semibold text-purple-900">
+                ✨ Buat Draf Berita dengan AI
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 text-purple-800">
+                Masukkan fakta yang benar-benar Anda ketahui. AI hanya
+                membantu menyusun draf dan SEO. Hasil tetap harus diperiksa
+                admin sebelum diterbitkan.
+              </p>
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Topik Berita
+                  </label>
+                  <input
+                    type="text"
+                    value={aiTopic}
+                    onChange={(event) => setAiTopic(event.target.value)}
+                    placeholder="Contoh: Kegiatan arisan dan silaturahmi anggota"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Fakta / Informasi yang Diketahui
+                  </label>
+                  <textarea
+                    value={aiFacts}
+                    onChange={(event) => setAiFacts(event.target.value)}
+                    placeholder="Tuliskan fakta penting: siapa, kegiatan apa, kapan, di mana, tujuan, hasil, dan informasi lain yang benar-benar diketahui."
+                    rows={7}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Jangan masukkan informasi yang belum dipastikan.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Gaya Penulisan
+                  </label>
+                  <select
+                    value={aiTone}
+                    onChange={(event) => setAiTone(event.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  >
+                    <option value="informatif, hangat, dan natural">
+                      Informatif, hangat, dan natural
+                    </option>
+                    <option value="formal dan resmi">
+                      Formal dan resmi
+                    </option>
+                    <option value="santai tetapi tetap sopan">
+                      Santai tetapi tetap sopan
+                    </option>
+                    <option value="ringkas dan langsung ke inti">
+                      Ringkas dan langsung ke inti
+                    </option>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void handleGenerateAI()}
+                  disabled={aiGenerating}
+                  className="rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {aiGenerating
+                    ? '✨ Sedang membuat draf...'
+                    : '✨ Buat Draf AI'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Judul Berita
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Masukkan judul berita"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Kategori
+              </label>
+              <input
+                type="text"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                placeholder="Contoh: Pengumuman, Kegiatan, Informasi"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Upload Gambar
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={imageUploading}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void handleImageUpload(file);
+                    }
+                    event.currentTarget.value = '';
+                  }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+
+                <p className="mt-1 text-xs text-gray-400">
+                  {imageUploading
+                    ? 'Sedang mengunggah gambar...'
+                    : 'Opsional. Maksimal 5 MB.'}
+                </p>
+
+                {imageUrl && (
+                  <div className="mt-3">
+                    <img
+                      src={imageUrl}
+                      alt={altText || 'Preview gambar berita'}
+                      className="max-h-80 w-full rounded-lg object-contain bg-gray-100"
+                    />
+                  </div>
+                )}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Isi Berita
+              </label>
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder="Tulis isi berita..."
+                rows={10}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm leading-6 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-800">
+                🔎 SEO Berita
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                Field ini membantu mesin pencari memahami halaman berita.
+                Gunakan kata kunci yang benar-benar relevan dan jangan
+                melakukan pengulangan kata kunci secara berlebihan.
+              </p>
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Slug URL
+                  </label>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(event) => setSlug(createSlug(event.target.value))}
+                    placeholder="contoh-kegiatan-paguyuban"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    URL berita yang ringkas dan mudah dibaca.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Ringkasan / Excerpt
+                  </label>
+                  <textarea
+                    value={excerpt}
+                    onChange={(event) => setExcerpt(event.target.value)}
+                    placeholder="Ringkasan singkat yang menggambarkan isi berita."
+                    rows={3}
+                    maxLength={300}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    SEO Title
+                  </label>
+                  <input
+                    type="text"
+                    value={seoTitle}
+                    onChange={(event) => setSeoTitle(event.target.value)}
+                    placeholder="Judul yang dioptimalkan untuk pencarian"
+                    maxLength={70}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Meta Description
+                  </label>
+                  <textarea
+                    value={metaDescription}
+                    onChange={(event) =>
+                      setMetaDescription(event.target.value)
+                    }
+                    placeholder="Deskripsi singkat halaman berita untuk mesin pencari."
+                    rows={3}
+                    maxLength={160}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm leading-6 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    {metaDescription.length}/160 karakter
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Focus Keyword
+                  </label>
+                  <input
+                    type="text"
+                    value={focusKeyword}
+                    onChange={(event) => setFocusKeyword(event.target.value)}
+                    placeholder="Contoh: arisan paguyuban"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Keywords
+                  </label>
+                  <input
+                    type="text"
+                    value={keywords}
+                    onChange={(event) => setKeywords(event.target.value)}
+                    placeholder="kata kunci 1, kata kunci 2, kata kunci 3"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Alt Text Gambar
+                  </label>
+                  <input
+                    type="text"
+                    value={altText}
+                    onChange={(event) => setAltText(event.target.value)}
+                    placeholder="Deskripsi gambar secara jelas dan relevan"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {factCheckNotes.length > 0 && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <h3 className="text-sm font-semibold text-yellow-900">
+                  ⚠️ Catatan Verifikasi AI
+                </h3>
+
+                <p className="mt-1 text-xs leading-5 text-yellow-800">
+                  Periksa catatan berikut sebelum berita diterbitkan.
+                </p>
+
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-yellow-900">
+                  {factCheckNotes.map((note, index) => (
+                    <li key={`${index}-${note}`}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Status
+              </label>
+
+              <select
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as 'draft' | 'published')
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="published">Published - tampil ke anggota</option>
+                <option value="draft">Draft - hanya admin</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-5 flex gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving
+                ? 'Menyimpan...'
+                : editingId
+                  ? 'Simpan Perubahan'
+                  : 'Simpan Berita'}
+            </button>
+
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700"
+            >
+              Batal
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+          <p className="text-sm text-gray-500">Memuat berita...</p>
+        </div>
+      ) : news.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+          <div className="mb-3 text-4xl">📰</div>
+
+          <h2 className="text-lg font-semibold text-gray-700">
+            Belum ada berita
+          </h2>
+
+          <p className="mt-2 text-sm text-gray-500">
+            {isAdmin
+              ? 'Silakan tambahkan berita pertama.'
+              : 'Belum ada berita yang dipublikasikan.'}
+          </p>
+        </div>
+      ) : isAdmin ? (
+        <div className="grid gap-5 md:grid-cols-2">
+          {news.map((item) => (
+            <article
+              key={item.id}
+              className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+            >
+              {item.imageUrl && (
+                <img
+                  src={item.imageUrl}
+                  alt={item.title}
+                  className="h-48 w-full object-contain bg-gray-100"
+                />
+              )}
+
+              <div className="p-5">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  {item.category && (
+                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                      {item.category}
+                    </span>
+                  )}
+
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      item.status === 'published'
+                        ? 'bg-green-50 text-green-700'
+                        : 'bg-yellow-50 text-yellow-700'
+                    }`}
+                  >
+                    {item.status === 'published'
+                      ? 'Published'
+                      : 'Draft'}
+                  </span>
+                </div>
+
+                <h2 className="text-lg font-bold text-gray-800">
+                  {item.title}
+                </h2>
+
+                <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-gray-600">
+                  {item.content}
+                </p>
+
+                <p className="mt-3 text-xs text-gray-400">
+                  {formatDate(item.createdAt)}
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void openNews(item)}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Baca Berita
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(item)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(item)}
+                    disabled={saving}
+                    className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 disabled:opacity-50"
+                  >
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="mx-auto max-w-4xl">
+          {news.map((item) => {
+            const newsUrl = `/berita/${encodeURIComponent(
+              item.slug || item.id
+            )}`;
+
+            return (
+              <article
+                key={item.id}
+                className="border-b border-gray-200 py-7 first:pt-0 last:border-b-0"
+              >
+                {item.imageUrl && (
+                  <a href={newsUrl} className="block">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.altText || item.title}
+                      className="mb-5 max-h-[420px] w-full object-contain"
+                    />
+                  </a>
+                )}
+
+                <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                  {item.category && (
+                    <span className="font-semibold text-blue-600">
+                      {item.category}
+                    </span>
+                  )}
+
+                  <span>
+                    {formatDate(item.publishedAt || item.createdAt)}
+                  </span>
+                </div>
+
+                <h2 className="text-2xl font-bold leading-tight text-gray-900 md:text-3xl">
+                  <a
+                    href={newsUrl}
+                    className="transition-colors hover:text-blue-600"
+                  >
+                    {item.title}
+                  </a>
+                </h2>
+
+                {item.excerpt ? (
+                  <p className="mt-3 text-base leading-7 text-gray-600">
+                    {item.excerpt}
+                  </p>
+                ) : (
+                  <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-base leading-7 text-gray-600">
+                    {item.content}
+                  </p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default BeritaView;

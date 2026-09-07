@@ -1,0 +1,6 @@
+{
+  "name": "Paguyuban Bani P3N Kedungbanteng",
+  "description": "Sistem Informasi & Manajemen Arisan, Iuran, Kas Masuk & Keluar, serta Jadwal Sholat Seluruh Dunia & Indonesia dengan Pengingat Suara Adzan Paguyuban Bani P3N Kedungbanteng.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

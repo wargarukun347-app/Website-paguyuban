@@ -1,0 +1,12 @@
+{
+  "projectId": "website-paguyuban",
+  "appId": "1:144086549302:web:0c66174141b432b608a997",
+  "apiKey": "AIzaSyCmfDQUsYIfXVFkqoHxpc_Y2MkimQGzGGg",
+  "authDomain": "website-paguyuban.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "website-paguyuban.firebasestorage.app",
+  "messagingSenderId": "144086549302",
+  "measurementId": "G-XXER97EX80",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}
