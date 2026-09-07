@@ -416,8 +416,7 @@ export const MemberNewsPortal: React.FC = () => {
           Berita dan Informasi
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Berita Paguyuban dan informasi terkini dari
-          berbagai kategori.
+          Berita Paguyuban dan informasi terkini dari berbagai kategori.
         </p>
       </div>
 
@@ -425,11 +424,11 @@ export const MemberNewsPortal: React.FC = () => {
         <div className="flex min-w-max gap-5">
           <button
             type="button"
-            onClick={() => setActiveTab('paguyuban')}
+            onClick={() => setActiveTab("paguyuban")}
             className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${
-              activeTab === 'paguyuban'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800'
+              activeTab === "paguyuban"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
             }`}
           >
             Berita Paguyuban
@@ -442,8 +441,8 @@ export const MemberNewsPortal: React.FC = () => {
               onClick={() => setActiveTab(category.id)}
               className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${
                 activeTab === category.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800'
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
               }`}
             >
               {category.label}
@@ -452,7 +451,7 @@ export const MemberNewsPortal: React.FC = () => {
         </div>
       </div>
 
-      {activeTab === 'paguyuban'
+      {activeTab === "paguyuban"
         ? renderPaguyubanNews()
         : renderInternetNews()}
     </div>
