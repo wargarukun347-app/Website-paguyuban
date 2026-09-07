@@ -1,3 +1,4 @@
+import '../styles/news-xapify.css';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PUBLIC_NEWS_AUTHOR } from '../lib/newsConstants';
 import {
@@ -76,7 +77,7 @@ const mapFirestoreNews = (article: NewsArticle): NewsItem => ({
     article.slug || article.id
   )}`,
   pubDate: formatDate(article.publishedAt || article.createdAt),
-  author: PUBLIC_NEWS_AUTHOR,
+  author: PUBLIC_NEWS_AUTHOR, PUBLIC_NEWS_AUTHOR,
 });
 
 export const MemberNewsPortal: React.FC = () => {
