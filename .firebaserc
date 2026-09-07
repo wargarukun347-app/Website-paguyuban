@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "website-paguyuban"
+  },
+  "targets": {
+    "website-paguyuban": {
+      "hosting": {
+        "website": [
+          "website-paguyuban"
+        ]
+      }
+    }
+  }
+}

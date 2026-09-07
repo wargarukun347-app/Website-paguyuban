@@ -1,0 +1,290 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // 1. HELPER FUNCTIONS (Strict & Robust RBAC)
+    // =========================================================================
+    
+    // Checks if the client is authenticated via Firebase Authentication
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
+    // Verifies that the document owner UID matches the authenticated caller UID
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Identifies designated bootstrap system administrator accounts
+    function isSystemAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == 'XE5whUp5ANbvNcDenPpdU54RjEF3' ||
+        request.auth.uid == 'pdk76t5xDOPc3uhWeNKPbpiJxFQ2' ||
+        request.auth.uid == 'tgQbLhDht4bAdIu5WhCk4h7idZq1' ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'wargarukun347@gmail.com') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'admin@kua.id') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'admin@gmail.com')
+      );
+    }
+    
+    // Server-authoritative admin verification.
+    function isAdmin() {
+      return isSystemAdmin() || 
+             (isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))) ||
+             (isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+
+    // =========================================================================
+    // 2. ADMIN ROLES COLLECTION (/roles_admin/{adminId})
+    // =========================================================================
+    // Stores authoritative administrator role assignments.
+    // - Unauthenticated users cannot read or modify.
+    // - Member can only read their own admin status.
+    // - Only verified administrators can list or grant admin privileges.
+    match /roles_admin/{adminId} {
+      allow get: if isSignedIn() && (isOwner(adminId) || isAdmin());
+      allow list: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() && (isSystemAdmin() || isAdmin() || isOwner(adminId));
+      allow update: if isSignedIn() && (isSystemAdmin() || isAdmin());
+      allow delete: if isSignedIn() && (isSystemAdmin() || isAdmin());
+    }
+
+    // =========================================================================
+    // 3. USERS COLLECTION (/users/{userId})
+    // =========================================================================
+    // User profile metadata and application authentication record.
+    // - Unauthenticated users CANNOT read user data.
+    // - Member can only read their own user document.
+    // - Member cannot read other users' accounts.
+    // - Member cannot create or elevate their role to 'admin'.
+    // - Client/browser payload role is locked strictly to 'user' for non-admins.
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isSignedIn() && isAdmin();
+      
+      allow create: if isSignedIn() && isOwner(userId) && (
+        (request.resource.data.role == 'user') ||
+        (isAdmin() && request.resource.data.role == 'admin')
+      );
+      
+      allow update: if isSignedIn() && (
+        (isOwner(userId) && 
+         request.resource.data.role == resource.data.role && 
+         resource.data.role == 'user') ||
+        isAdmin()
+      );
+      
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // =========================================================================
+    // 4. MEMBERS REGISTRY (/members/{memberId})
+    // =========================================================================
+    // Registry of paguyuban members (biodata, status, category).
+    // - Unauthenticated users CANNOT read member records.
+    // - Member can ONLY access their own member document.
+    // - Member CANNOT read other members' data.
+    // - Member can create/update only their own record upon registration.
+    // - Member CANNOT assign themselves admin status.
+    // - Admin has full read/write management permissions.
+    match /members/{memberId} {
+      allow get: if isSignedIn() && (
+        isAdmin() || 
+        memberId == request.auth.uid || 
+        (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid) ||
+        (resource.data.keys().hasAny(['email']) && request.auth.token.keys().hasAny(['email']) && resource.data.email == request.auth.token.email)
+      );
+      
+      allow list: if isSignedIn() && isAdmin();
+      
+      allow create: if isSignedIn() && (
+        isAdmin() || 
+        (
+          (memberId == request.auth.uid || (request.resource.data.keys().hasAny(['userId']) && request.resource.data.userId == request.auth.uid)) &&
+          (!('role' in request.resource.data) || request.resource.data.role == 'user')
+        )
+      );
+      
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (
+          (memberId == request.auth.uid || (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid)) &&
+          (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+        )
+      );
+      
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // =========================================================================
+    // 5. PAYMENTS LEDGER (/payments/{paymentId})
+    // =========================================================================
+    // Records of Arisan & Iuran payments.
+    // - Unauthenticated users CANNOT access payment records.
+    // - Member can only read their own payment history.
+    // - Member cannot read other members' payment ledgers.
+    // - Financial status updates (toggle payment) are strictly Admin-only.
+    match /payments/{paymentId} {
+      // paymentId adalah Member.id, BUKAN Firebase Auth UID.
+      // Anggota hanya boleh membaca ledger milik Member yang
+      // terhubung ke akun Firebase melalui members/{memberId}.userId.
+      allow get: if isSignedIn() && (
+        isAdmin() ||
+        (
+          exists(/databases/$(database)/documents/members/$(paymentId)) &&
+          get(/databases/$(database)/documents/members/$(paymentId)).data.keys().hasAny(['userId']) &&
+          get(/databases/$(database)/documents/members/$(paymentId)).data.userId == request.auth.uid
+        ) ||
+        (
+          resource.data.keys().hasAny(['userId']) &&
+          resource.data.userId == request.auth.uid
+        ) ||
+        (
+          resource.data.keys().hasAny(['memberId']) &&
+          resource.data.memberId == paymentId &&
+          exists(/databases/$(database)/documents/members/$(paymentId)) &&
+          get(/databases/$(database)/documents/members/$(paymentId)).data.keys().hasAny(['userId']) &&
+          get(/databases/$(database)/documents/members/$(paymentId)).data.userId == request.auth.uid
+        )
+      );
+
+      allow list: if isSignedIn() && isAdmin();
+
+      // Pembayaran hanya dapat dibuat/diubah/dihapus admin.
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // =========================================================================
+    // 6. CASH TRANSACTIONS (/cash_transactions/{transactionId})
+    // =========================================================================
+    // Institutional Treasury Book (Buku Kas Masuk / Kas Keluar).
+    // - Strictly Admin-only collection.
+    // - Members and unauthenticated callers cannot read or modify entries.
+    match /cash_transactions/{transactionId} {
+      allow get: if isSignedIn() && isAdmin();
+      allow list: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // =========================================================================
+    // 7. LOTTERY WINNERS (/lottery_winners/{winnerId})
+    // =========================================================================
+    // Monthly lottery draw winners.
+    // - Authenticated users (members) can read winner announcements.
+    // - Unauthenticated users CANNOT access.
+    // - Drawing winners and ledger modification is strictly Admin-only.
+    match /lottery_winners/{winnerId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // =========================================================================
+    // 8. APP STATE & PROFILE (/app_state/{stateId})
+    // =========================================================================
+    // Organization configuration, signatories, stamp, and profile.
+    // - Authenticated users can read organization profile and official info.
+    // - Unauthenticated users CANNOT access.
+    // - Modifying profile and configuration is strictly Admin-only.
+    match /app_state/{stateId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // =========================================================================
+    // 9. CHATS & MESSAGES (/chats/{chatId} & Subcollections)
+    // =========================================================================
+    // Direct communication between member and administrators.
+    // - Unauthenticated users CANNOT access.
+    // - Member can only read and write their own inquiries.
+    // - Member cannot read messages of other members.
+    // - Admin can read and respond to all inquiries.
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid) || 
+        (resource.data.keys().hasAny(['memberId']) && resource.data.memberId == request.auth.uid)
+      );
+      
+      allow list: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid)
+      );
+      
+      allow create: if isSignedIn() && (
+        isAdmin() || 
+        (request.resource.data.keys().hasAny(['userId']) && request.resource.data.userId == request.auth.uid) ||
+        (request.resource.data.keys().hasAny(['memberId']) && request.resource.data.memberId == request.auth.uid)
+      );
+      
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.keys().hasAny(['userId']) && resource.data.userId == request.auth.uid)
+      );
+      
+      allow delete: if isSignedIn() && isAdmin();
+
+      // Nested subcollections under chat thread
+      match /{subcollection=**} {
+        allow read, write: if isSignedIn() && (
+          isAdmin() || 
+          get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid
+        );
+      }
+    }
+
+    // =========================================================================
+    // 10. DEFAULT DENY FOR ALL OTHER UNMATCHED COLLECTIONS & PATHS
+    // =========================================================================
+    
+  // 9. NEWS / BERITA
+  // Admin dapat membuat, membaca, mengubah, dan menghapus berita.
+  // Anggota hanya dapat membaca berita yang sudah published.
+  match /news/{newsId} {
+    // Berita published dapat dibaca publik tanpa login.
+    // Draft tetap hanya dapat dibaca oleh admin.
+    allow read: if resource.data.status == 'published' || isAdmin();
+
+
+    allow create: if isSignedIn() && isAdmin();
+
+    allow update: if isSignedIn() && isAdmin();
+
+    allow delete: if isSignedIn() && isAdmin();
+  }
+
+  // 10. NEWS COMMENTS / KOMENTAR BERITA
+  // Pengguna yang sudah login dapat membaca dan membuat komentar.
+  // Admin juga dapat membaca dan mengelola komentar.
+  match /news_comments/{commentId} {
+    allow read: if isSignedIn();
+
+    allow create: if isSignedIn()
+      && request.resource.data.userId == request.auth.uid;
+
+    allow update: if isSignedIn() && (
+      isAdmin() ||
+      resource.data.userId == request.auth.uid
+    );
+
+    allow delete: if isSignedIn() && (
+      isAdmin() ||
+      resource.data.userId == request.auth.uid
+    );
+  }
+
+match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

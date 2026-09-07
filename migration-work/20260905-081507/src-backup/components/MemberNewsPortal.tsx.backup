@@ -1,0 +1,241 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+interface NewsItem {
+  title: string;
+  description?: string;
+  image?: string;
+  link: string;
+  pubDate?: string;
+  author?: string;
+}
+
+interface ApiResponse {
+  data?: NewsItem[];
+}
+
+const API_BASE = '/api/member-news';
+
+const categories = [
+  { id: 'terkini', label: 'Terkini', source: 'antara', category: 'terbaru' },
+  { id: 'viral', label: 'Viral', source: 'cnn', category: 'terbaru' },
+  { id: 'nasional', label: 'Nasional', source: 'cnn', category: 'nasional' },
+  { id: 'politik', label: 'Politik', source: 'antara', category: 'politik' },
+  { id: 'ekonomi', label: 'Ekonomi', source: 'antara', category: 'ekonomi' },
+  { id: 'olahraga', label: 'Olahraga', source: 'antara', category: 'olahraga' },
+  { id: 'teknologi', label: 'Teknologi', source: 'cnn', category: 'teknologi' },
+  { id: 'hiburan', label: 'Hiburan', source: 'cnn', category: 'hiburan' },
+  { id: 'dunia', label: 'Dunia', source: 'antara', category: 'dunia' },
+  { id: 'kesehatan', label: 'Kesehatan', source: 'tribun', category: 'kesehatan' },
+] as const;
+
+type CategoryId = (typeof categories)[number]['id'];
+
+const formatDate = (value?: string) => {
+  if (!value) return '';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
+const cleanText = (value?: string) => {
+  if (!value) return '';
+
+  return value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const getApiUrl = (_source: string, category: string) =>
+  `${API_BASE}?category=${encodeURIComponent(category)}`;
+
+export const MemberNewsPortal: React.FC = () => {
+  const [activeCategory, setActiveCategory] =
+    useState<CategoryId>('terkini');
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const selectedCategory = useMemo(
+    () =>
+      categories.find((item) => item.id === activeCategory) ||
+      categories[0],
+    [activeCategory]
+  );
+
+  const loadNews = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(
+        getApiUrl(
+          selectedCategory.source,
+          selectedCategory.category
+        )
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = (await response.json()) as ApiResponse;
+
+      const items = Array.isArray(result.data)
+        ? result.data
+        : [];
+
+      setNews(items);
+    } catch (err) {
+      console.error('Gagal memuat berita umum:', err);
+      setNews([]);
+      setError(
+        'Berita terkini belum dapat dimuat. Silakan coba lagi.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    void loadNews();
+  }, [loadNews]);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">
+          Berita dan Informasi
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Berita terbaru dari berbagai kategori.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto border-b border-gray-200">
+        <div className="flex min-w-max gap-5">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => setActiveCategory(category.id)}
+              className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${
+                activeCategory === category.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800'
+              }`}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+          <button
+            type="button"
+            onClick={() => void loadNews()}
+            className="ml-2 font-semibold underline"
+          >
+            Coba lagi
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-12 text-center text-sm text-gray-500">
+          Memuat berita terbaru...
+        </div>
+      ) : news.length === 0 ? (
+        <div className="py-12 text-center text-sm text-gray-500">
+          Belum ada berita yang dapat ditampilkan.
+        </div>
+      ) : (
+        <div className="divide-y divide-gray-200">
+          {news.map((item, index) => {
+            const title = cleanText(item.title);
+            const description = cleanText(item.description);
+
+            return (
+              <article
+                key={`${item.link}-${index}`}
+                className="flex gap-4 py-6 first:pt-2"
+              >
+                {item.image ? (
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:w-48"
+                  >
+                    <img
+                      src={item.image}
+                      alt={title}
+                      className="h-24 w-full object-cover sm:h-32"
+                      loading="lazy"
+                    />
+                  </a>
+                ) : (
+                  <div className="hidden w-32 shrink-0 rounded-lg bg-gray-100 sm:block sm:w-48" />
+                )}
+
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <span className="font-semibold text-blue-600">
+                      {selectedCategory.label}
+                    </span>
+
+                    {item.pubDate && (
+                      <>
+                        <span>•</span>
+                        <span>{formatDate(item.pubDate)}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <h2 className="text-lg font-bold leading-7 text-gray-900 sm:text-xl">
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="transition-colors hover:text-blue-600"
+                    >
+                      {title}
+                    </a>
+                  </h2>
+
+                  {description && (
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">
+                      {description}
+                    </p>
+                  )}
+
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-block text-xs font-semibold text-blue-600 hover:underline"
+                  >
+                    Baca berita selengkapnya →
+                  </a>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MemberNewsPortal;

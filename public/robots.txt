@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://paguyubanarisanbanip3n.my.id/sitemap.xml

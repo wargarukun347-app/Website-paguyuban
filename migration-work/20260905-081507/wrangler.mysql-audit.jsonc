@@ -1,0 +1,12 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "paguyuban-migration-mysql-audit",
+  "main": "migration-work/20260905-081507/mysql-audit-worker.js",
+  "compatibility_date": "2026-09-05",
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "a19f45c7f6264770acbd486e834bc51c"
+    }
+  ]
+}

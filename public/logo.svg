@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- Vintage Drop Shadow -->
+    <filter id="badgeShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#103641" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g id="paguyuban-badge-logo" filter="url(#badgeShadow)">
+    <!-- Lower Ribbon Tails (Behind Shield) -->
+    <!-- Left Ribbon Tail -->
+    <path d="M 68,272 L 135,272 L 135,326 L 95,354 L 68,326 Z" fill="#f5ede0" stroke="#103641" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M 78,284 L 78,320 M 88,280 L 88,324 M 98,280 L 98,332 M 108,280 L 108,320 M 118,280 L 118,310 M 128,280 L 128,300" stroke="#103641" stroke-width="1.8" opacity="0.6"/>
+
+    <!-- Right Ribbon Tail -->
+    <path d="M 432,272 L 365,272 L 365,326 L 405,354 L 432,326 Z" fill="#f5ede0" stroke="#103641" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M 422,284 L 422,320 M 412,280 L 412,324 M 402,280 L 402,332 M 392,280 L 392,320 M 382,280 L 382,310 M 372,280 L 372,300" stroke="#103641" stroke-width="1.8" opacity="0.6"/>
+
+    <!-- Outer Main Shield (Thick Dark Teal Border) -->
+    <path d="M 250,56 C 300,82 388,88 438,106 C 438,206 442,326 250,444 C 58,326 62,206 62,106 C 112,88 200,82 250,56 Z" 
+          fill="#fbf6ea" stroke="#103641" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- Inner Shield Inset Line -->
+    <path d="M 250,72 C 295,94 378,100 422,116 C 422,206 426,314 250,424 C 74,314 78,206 78,116 C 122,100 205,94 250,72 Z" 
+          fill="none" stroke="#103641" stroke-width="3.5" opacity="0.85"/>
+
+    <!-- Top Section: Handshake Illustration -->
+    <g id="handshake-graphic" transform="translate(0, 5)">
+      <!-- Left Sleeve (Black Coat) -->
+      <polygon points="144,188 178,118 214,136 172,202" fill="#1b1c1e" stroke="#103641" stroke-width="5" stroke-linejoin="round"/>
+      <!-- Left Cuff (White Shirt) -->
+      <polygon points="172,202 214,136 220,140 180,207" fill="#ffffff" stroke="#103641" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- Left Cuff Button -->
+      <circle cx="186" cy="188" r="3" fill="#ffffff" stroke="#103641" stroke-width="1.5"/>
+
+      <!-- Right Sleeve (Black Coat) -->
+      <polygon points="356,188 322,118 286,136 328,202" fill="#1b1c1e" stroke="#103641" stroke-width="5" stroke-linejoin="round"/>
+      <!-- Right Cuff (White Shirt) -->
+      <polygon points="328,202 286,136 280,140 320,207" fill="#ffffff" stroke="#103641" stroke-width="4.5" stroke-linejoin="round"/>
+      <!-- Right Cuff Button -->
+      <circle cx="314" cy="188" r="3" fill="#ffffff" stroke="#103641" stroke-width="1.5"/>
+
+      <!-- Left Hand & Thumb -->
+      <!-- Hand Base Skin Tone -->
+      <path d="M 180,207 C 196,192 210,180 234,178 C 248,176 258,184 266,194 C 274,204 264,222 250,224 C 238,226 224,226 210,222 C 198,218 186,212 180,207 Z" 
+            fill="#fcd2b5" stroke="#103641" stroke-width="4.5" stroke-linejoin="round"/>
+      
+      <!-- Right Hand Fingers Gripping -->
+      <path d="M 280,140 C 265,155 250,165 236,168 C 228,170 224,166 226,160 C 232,148 245,142 260,138 Z" 
+            fill="#fcd2b5" stroke="#103641" stroke-width="4" stroke-linejoin="round"/>
+
+      <path d="M 226,170 C 242,168 260,172 272,185 C 278,192 276,204 268,208 C 256,214 246,212 236,204" 
+            fill="#fcd2b5" stroke="#103641" stroke-width="4" stroke-linejoin="round"/>
+      
+      <!-- Finger Joint Details & Interlocking Hands -->
+      <!-- Clasping Fingers 1, 2, 3, 4 -->
+      <path d="M 200,202 C 206,216 218,222 230,220 C 236,218 238,210 234,204" fill="#fcd2b5" stroke="#103641" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 214,208 C 220,222 232,226 244,224 C 250,222 252,214 248,208" fill="#fcd2b5" stroke="#103641" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 228,214 C 234,226 246,228 258,226 C 264,224 266,216 262,210" fill="#fcd2b5" stroke="#103641" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M 242,216 C 248,226 258,228 268,224 C 274,220 274,214 270,208" fill="#fcd2b5" stroke="#103641" stroke-width="3.5" stroke-linecap="round"/>
+
+      <!-- Palm Crease Lines -->
+      <path d="M 205,190 C 218,188 230,192 242,198" stroke="#103641" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M 220,182 C 228,184 235,188 240,194" stroke="#103641" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+    </g>
+
+    <!-- Center Horizontal Ribbon Banner -->
+    <g id="ribbon-banner">
+      <!-- Banner Box with Vintage Contours -->
+      <path d="M 52,228 L 448,228 L 448,284 L 52,284 Z" 
+            fill="#fbf6ea" stroke="#103641" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+
+      <!-- Inner Banner Fine Inset -->
+      <rect x="60" y="235" width="380" height="42" fill="none" stroke="#103641" stroke-width="2.5" opacity="0.4"/>
+
+      <!-- Text: PAGUYUBAN -->
+      <text x="250" y="271" 
+            font-family="'Impact', 'Arial Black', 'Plus Jakarta Sans', sans-serif" 
+            font-size="46" 
+            font-weight="900" 
+            letter-spacing="5" 
+            text-anchor="middle" 
+            fill="#103641">
+        PAGUYUBAN
+      </text>
+
+      <!-- Ribbon Side Folds / Creases (Vintage Engraving Lines) -->
+      <path d="M 60,284 L 140,312 L 250,296 L 360,312 L 440,284" fill="none" stroke="#103641" stroke-width="4.5" stroke-linejoin="round"/>
+      <path d="M 68,288 L 138,308 M 80,288 L 138,304 M 92,288 L 138,300" stroke="#103641" stroke-width="1.5" opacity="0.6"/>
+      <path d="M 432,288 L 362,308 M 420,288 L 362,304 M 408,288 L 362,300" stroke="#103641" stroke-width="1.5" opacity="0.6"/>
+    </g>
+
+    <!-- Lower Content: BANI KUA & KEDUNGBANTENG -->
+    <g id="lower-text-section">
+      <!-- Line 1: BANI KUA -->
+      <text x="250" y="338" 
+            font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif" 
+            font-size="30" 
+            font-weight="900" 
+            letter-spacing="2.5" 
+            text-anchor="middle" 
+            fill="#103641">
+        BANI KUA
+      </text>
+
+      <!-- Line 2: KEDUNGBANTENG -->
+      <text x="250" y="368" 
+            font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif" 
+            font-size="21" 
+            font-weight="900" 
+            letter-spacing="1.8" 
+            text-anchor="middle" 
+            fill="#103641">
+        KEDUNGBANTENG
+      </text>
+
+      <!-- Divider Bar & PBK Dots -->
+      <line x1="190" y1="380" x2="310" y2="380" stroke="#103641" stroke-width="4.5" stroke-linecap="round"/>
+
+      <!-- Text: • PBK • -->
+      <circle cx="204" cy="397" r="4.5" fill="#103641"/>
+      <text x="250" y="404" 
+            font-family="'Plus Jakarta Sans', 'Arial Black', sans-serif" 
+            font-size="20" 
+            font-weight="900" 
+            letter-spacing="3" 
+            text-anchor="middle" 
+            fill="#103641">
+        PBK
+      </text>
+      <circle cx="296" cy="397" r="4.5" fill="#103641"/>
+    </g>
+  </g>
+</svg>

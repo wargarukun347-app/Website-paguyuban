@@ -1,0 +1,53 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    name: Build and Deploy to Firebase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Type Check & Lint
+        run: npm run lint
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Verify dist output
+        run: |
+          test -d dist
+          test -f dist/index.html
+          echo "Build successful! dist/index.html is ready for Firebase Hosting."
+
+      - name: Deploy using Firebase Hosting Action
+        id: deploy_action
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEN_LANG_CLIENT_0342748058 != '' || secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_GEN_LANG_CLIENT_0342748058 || secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: website-paguyuban
+
+      - name: Deploy using Firebase CLI Token (Alternative)
+        if: ${{ (secrets.FIREBASE_SERVICE_ACCOUNT_GEN_LANG_CLIENT_0342748058 == '' && secrets.FIREBASE_SERVICE_ACCOUNT == '') && secrets.FIREBASE_TOKEN != '' }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --project website-paguyuban

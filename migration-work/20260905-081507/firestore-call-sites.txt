@@ -1,0 +1,373 @@
+src/components/BeritaView.tsx.backup:4:  deleteNewsFromFirestore,
+src/components/BeritaView.tsx.backup:5:  getNewsCommentsFromFirestore,
+src/components/BeritaView.tsx.backup:6:  getNewsFromFirestore,
+src/components/BeritaView.tsx.backup:7:  getPublishedNewsFromFirestore,
+src/components/BeritaView.tsx.backup:8:  saveNewsCommentToFirestore,
+src/components/BeritaView.tsx.backup:9:  saveNewsToFirestore,
+src/components/BeritaView.tsx.backup:10:  updateNewsInFirestore,
+src/components/BeritaView.tsx.backup:100:          ? await getPublishedNewsFromFirestore()
+src/components/BeritaView.tsx.backup:101:          : await getNewsFromFirestore();
+src/components/BeritaView.tsx.backup:434:        await updateNewsInFirestore(editingId, {
+src/components/BeritaView.tsx.backup:453:        await saveNewsToFirestore({
+src/components/BeritaView.tsx.backup:563:      await deleteNewsFromFirestore(item.id);
+src/components/BeritaView.tsx.backup:593:      const result = await getNewsCommentsFromFirestore(item.id);
+src/components/BeritaView.tsx.backup:614:      await saveNewsCommentToFirestore({
+src/components/BeritaView.tsx.backup:624:      const result = await getNewsCommentsFromFirestore(selectedNews.id);
+src/components/BeritaView.tsx:4:  deleteNewsFromFirestore,
+src/components/BeritaView.tsx:5:  getNewsCommentsFromFirestore,
+src/components/BeritaView.tsx:6:  getNewsFromFirestore,
+src/components/BeritaView.tsx:7:  getPublishedNewsFromFirestore,
+src/components/BeritaView.tsx:8:  saveNewsCommentToFirestore,
+src/components/BeritaView.tsx:9:  saveNewsToFirestore,
+src/components/BeritaView.tsx:10:  updateNewsInFirestore,
+src/components/BeritaView.tsx:101:          ? await getPublishedNewsFromFirestore()
+src/components/BeritaView.tsx:102:          : await getNewsFromFirestore();
+src/components/BeritaView.tsx:435:        await updateNewsInFirestore(editingId, {
+src/components/BeritaView.tsx:454:        await saveNewsToFirestore({
+src/components/BeritaView.tsx:564:      await deleteNewsFromFirestore(item.id);
+src/components/BeritaView.tsx:601:        const result = await getNewsCommentsFromFirestore(selectedNews.id);
+src/components/BeritaView.tsx:646:      await saveNewsCommentToFirestore({
+src/components/BeritaView.tsx:660:      const result = await getNewsCommentsFromFirestore(selectedNews.id);
+src/components/MemberNewsPortal.tsx:3:  getPublishedNewsFromFirestore,
+src/components/MemberNewsPortal.tsx:115:      const result = await getPublishedNewsFromFirestore();
+src/components/PrayerTimesView.tsx:65:  saveAdzanSettingsToFirestore, 
+src/components/PrayerTimesView.tsx:66:  subscribeToAdzanSettings 
+src/components/PrayerTimesView.tsx:174:    saveAdzanSettingsToFirestore(adzanSettings);
+src/components/PrayerTimesView.tsx:179:    const unsubscribe = subscribeToAdzanSettings((remoteSettings) => {
+src/App.tsx.sebelum-berita:7:import { collection, onSnapshot, doc } from 'firebase/firestore';
+src/App.tsx.sebelum-berita:11:  saveMemberToFirestore, 
+src/App.tsx.sebelum-berita:12:  deleteMemberFromFirestore, 
+src/App.tsx.sebelum-berita:13:  batchSaveMembersToFirestore, 
+src/App.tsx.sebelum-berita:14:  savePaymentHistoryToFirestore, 
+src/App.tsx.sebelum-berita:15:  batchSavePaymentsToFirestore, 
+src/App.tsx.sebelum-berita:16:  saveCashTransactionToFirestore, 
+src/App.tsx.sebelum-berita:17:  deleteCashTransactionFromFirestore, 
+src/App.tsx.sebelum-berita:18:  batchSaveCashTransactionsToFirestore,
+src/App.tsx.sebelum-berita:19:  batchDeleteCashTransactionsFromFirestore,
+src/App.tsx.sebelum-berita:20:  saveLotteryWinnerToFirestore, 
+src/App.tsx.sebelum-berita:21:  deleteLotteryWinnerFromFirestore, 
+src/App.tsx.sebelum-berita:22:  saveProfileToFirestore, 
+src/App.tsx.sebelum-berita:52:import { subscribeToAuthChanges, logoutUser } from './lib/authService';
+src/App.tsx.sebelum-berita:79:    const unsubscribe = subscribeToAuthChanges((user) => {
+src/App.tsx.sebelum-berita:370:      const unsubMembers = onSnapshot(collection(db, COLLECTIONS.MEMBERS), (snapshot) => {
+src/App.tsx.sebelum-berita:386:      const unsubPayments = onSnapshot(collection(db, COLLECTIONS.PAYMENTS), (snapshot) => {
+src/App.tsx.sebelum-berita:436:      const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
+src/App.tsx.sebelum-berita:452:      const unsubMemberDoc = onSnapshot(doc(db, COLLECTIONS.MEMBERS, memberId), (docSnap) => {
+src/App.tsx.sebelum-berita:469:      const unsubPaymentDoc = onSnapshot(doc(db, COLLECTIONS.PAYMENTS, memberId), (docSnap) => {
+src/App.tsx.sebelum-berita:490:    const unsubProfile = onSnapshot(doc(db, COLLECTIONS.APP_STATE, 'paguyuban_profile'), (docSnap) => {
+src/App.tsx.sebelum-berita:619:    await savePaymentHistoryToFirestore(updatedPaymentRecord);
+src/App.tsx.sebelum-berita:637:      await saveCashTransactionToFirestore(syncTx);
+src/App.tsx.sebelum-berita:643:      await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.sebelum-berita:655:    await saveCashTransactionToFirestore(newTx);
+src/App.tsx.sebelum-berita:660:    await deleteCashTransactionFromFirestore(id);
+src/App.tsx.sebelum-berita:671:    await saveLotteryWinnerToFirestore(newWinner);
+src/App.tsx.sebelum-berita:681:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.sebelum-berita:688:    await saveLotteryWinnerToFirestore(updatedWinner);
+src/App.tsx.sebelum-berita:702:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.sebelum-berita:707:    await deleteLotteryWinnerFromFirestore(id);
+src/App.tsx.sebelum-berita:712:    await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.sebelum-berita:728:      await batchSaveCashTransactionsToFirestore(result.addedTransactions);
+src/App.tsx.sebelum-berita:731:      await batchDeleteCashTransactionsFromFirestore(result.deletedTxIds);
+src/App.tsx.sebelum-berita:747:    await saveMemberToFirestore(newMember);
+src/App.tsx.sebelum-berita:764:    await savePaymentHistoryToFirestore(newPayment);
+src/App.tsx.sebelum-berita:769:    await saveMemberToFirestore(updatedMember);
+src/App.tsx.sebelum-berita:775:    await deleteMemberFromFirestore(id);
+src/App.tsx.sebelum-berita:809:    await batchSaveMembersToFirestore(newMembers);
+src/App.tsx.sebelum-berita:810:    await batchSavePaymentsToFirestore(newPaymentHistories);
+src/App.tsx.sebelum-berita:815:    await saveProfileToFirestore(updated);
+src/App.tsx.sebelum-berita:828:      await batchSaveMembersToFirestore(backupData.members);
+src/App.tsx.sebelum-berita:832:      await batchSavePaymentsToFirestore(backupData.payments);
+src/App.tsx.sebelum-berita:837:        await saveCashTransactionToFirestore(tx);
+src/App.tsx.sebelum-berita:843:        await saveLotteryWinnerToFirestore(w);
+src/App.tsx.sebelum-berita:848:      await saveProfileToFirestore(backupData.profile);
+src/App.tsx.sebelum-berita:1123:                  await batchSaveMembersToFirestore(INITIAL_MEMBERS);
+src/App.tsx.sebelum-berita:1126:                  await batchSaveMembersToFirestore(members);
+src/App.tsx:7:import { collection, onSnapshot, doc } from 'firebase/firestore';
+src/App.tsx:11:  saveMemberToFirestore, 
+src/App.tsx:12:  deleteMemberFromFirestore, 
+src/App.tsx:13:  batchSaveMembersToFirestore, 
+src/App.tsx:14:  savePaymentHistoryToFirestore, 
+src/App.tsx:15:  batchSavePaymentsToFirestore, 
+src/App.tsx:16:  saveCashTransactionToFirestore, 
+src/App.tsx:17:  deleteCashTransactionFromFirestore, 
+src/App.tsx:18:  batchSaveCashTransactionsToFirestore,
+src/App.tsx:19:  batchDeleteCashTransactionsFromFirestore,
+src/App.tsx:20:  saveLotteryWinnerToFirestore, 
+src/App.tsx:21:  deleteLotteryWinnerFromFirestore, 
+src/App.tsx:22:  saveProfileToFirestore, 
+src/App.tsx:54:import { subscribeToAuthChanges, logoutUser } from './lib/authService';
+src/App.tsx:104:    const unsubscribe = subscribeToAuthChanges((user) => {
+src/App.tsx:396:      const unsubMembers = onSnapshot(collection(db, COLLECTIONS.MEMBERS), (snapshot) => {
+src/App.tsx:412:      const unsubPayments = onSnapshot(collection(db, COLLECTIONS.PAYMENTS), (snapshot) => {
+src/App.tsx:462:      const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
+src/App.tsx:478:      const unsubMemberDoc = onSnapshot(doc(db, COLLECTIONS.MEMBERS, memberId), (docSnap) => {
+src/App.tsx:495:      const unsubPaymentDoc = onSnapshot(doc(db, COLLECTIONS.PAYMENTS, memberId), (docSnap) => {
+src/App.tsx:516:    const unsubProfile = onSnapshot(doc(db, COLLECTIONS.APP_STATE, 'paguyuban_profile'), (docSnap) => {
+src/App.tsx:645:    await savePaymentHistoryToFirestore(updatedPaymentRecord);
+src/App.tsx:663:      await saveCashTransactionToFirestore(syncTx);
+src/App.tsx:669:      await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx:681:    await saveCashTransactionToFirestore(newTx);
+src/App.tsx:686:    await deleteCashTransactionFromFirestore(id);
+src/App.tsx:697:    await saveLotteryWinnerToFirestore(newWinner);
+src/App.tsx:707:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx:714:    await saveLotteryWinnerToFirestore(updatedWinner);
+src/App.tsx:728:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx:733:    await deleteLotteryWinnerFromFirestore(id);
+src/App.tsx:738:    await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx:754:      await batchSaveCashTransactionsToFirestore(result.addedTransactions);
+src/App.tsx:757:      await batchDeleteCashTransactionsFromFirestore(result.deletedTxIds);
+src/App.tsx:773:    await saveMemberToFirestore(newMember);
+src/App.tsx:790:    await savePaymentHistoryToFirestore(newPayment);
+src/App.tsx:795:    await saveMemberToFirestore(updatedMember);
+src/App.tsx:801:    await deleteMemberFromFirestore(id);
+src/App.tsx:835:    await batchSaveMembersToFirestore(newMembers);
+src/App.tsx:836:    await batchSavePaymentsToFirestore(newPaymentHistories);
+src/App.tsx:841:    await saveProfileToFirestore(updated);
+src/App.tsx:854:      await batchSaveMembersToFirestore(backupData.members);
+src/App.tsx:858:      await batchSavePaymentsToFirestore(backupData.payments);
+src/App.tsx:863:        await saveCashTransactionToFirestore(tx);
+src/App.tsx:869:        await saveLotteryWinnerToFirestore(w);
+src/App.tsx:874:      await saveProfileToFirestore(backupData.profile);
+src/App.tsx:1174:                  await batchSaveMembersToFirestore(INITIAL_MEMBERS);
+src/App.tsx:1177:                  await batchSaveMembersToFirestore(members);
+src/App.tsx.backup-quota:7:import { collection, onSnapshot, doc } from 'firebase/firestore';
+src/App.tsx.backup-quota:11:  saveMemberToFirestore, 
+src/App.tsx.backup-quota:12:  deleteMemberFromFirestore, 
+src/App.tsx.backup-quota:13:  batchSaveMembersToFirestore, 
+src/App.tsx.backup-quota:14:  savePaymentHistoryToFirestore, 
+src/App.tsx.backup-quota:15:  batchSavePaymentsToFirestore, 
+src/App.tsx.backup-quota:16:  saveCashTransactionToFirestore, 
+src/App.tsx.backup-quota:17:  deleteCashTransactionFromFirestore, 
+src/App.tsx.backup-quota:18:  batchSaveCashTransactionsToFirestore,
+src/App.tsx.backup-quota:19:  batchDeleteCashTransactionsFromFirestore,
+src/App.tsx.backup-quota:20:  saveLotteryWinnerToFirestore, 
+src/App.tsx.backup-quota:21:  deleteLotteryWinnerFromFirestore, 
+src/App.tsx.backup-quota:22:  saveProfileToFirestore, 
+src/App.tsx.backup-quota:52:import { subscribeToAuthChanges, logoutUser } from './lib/authService';
+src/App.tsx.backup-quota:79:    const unsubscribe = subscribeToAuthChanges((user) => {
+src/App.tsx.backup-quota:370:      const unsubMembers = onSnapshot(collection(db, COLLECTIONS.MEMBERS), (snapshot) => {
+src/App.tsx.backup-quota:384:      const unsubPayments = onSnapshot(collection(db, COLLECTIONS.PAYMENTS), (snapshot) => {
+src/App.tsx.backup-quota:397:      const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
+src/App.tsx.backup-quota:413:      const unsubMemberDoc = onSnapshot(doc(db, COLLECTIONS.MEMBERS, memberId), (docSnap) => {
+src/App.tsx.backup-quota:430:      const unsubPaymentDoc = onSnapshot(doc(db, COLLECTIONS.PAYMENTS, memberId), (docSnap) => {
+src/App.tsx.backup-quota:448:    const unsubWinners = onSnapshot(collection(db, COLLECTIONS.LOTTERY_WINNERS), (snapshot) => {
+src/App.tsx.backup-quota:461:    const unsubProfile = onSnapshot(doc(db, COLLECTIONS.APP_STATE, 'paguyuban_profile'), (docSnap) => {
+src/App.tsx.backup-quota:558:      await savePaymentHistoryToFirestore(updatedPaymentRecord);
+src/App.tsx.backup-quota:575:      await saveCashTransactionToFirestore(syncTx);
+src/App.tsx.backup-quota:578:      await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup-quota:590:    await saveCashTransactionToFirestore(newTx);
+src/App.tsx.backup-quota:595:    await deleteCashTransactionFromFirestore(id);
+src/App.tsx.backup-quota:606:    await saveLotteryWinnerToFirestore(newWinner);
+src/App.tsx.backup-quota:616:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup-quota:623:    await saveLotteryWinnerToFirestore(updatedWinner);
+src/App.tsx.backup-quota:637:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup-quota:642:    await deleteLotteryWinnerFromFirestore(id);
+src/App.tsx.backup-quota:647:    await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup-quota:663:      await batchSaveCashTransactionsToFirestore(result.addedTransactions);
+src/App.tsx.backup-quota:666:      await batchDeleteCashTransactionsFromFirestore(result.deletedTxIds);
+src/App.tsx.backup-quota:682:    await saveMemberToFirestore(newMember);
+src/App.tsx.backup-quota:699:    await savePaymentHistoryToFirestore(newPayment);
+src/App.tsx.backup-quota:704:    await saveMemberToFirestore(updatedMember);
+src/App.tsx.backup-quota:710:    await deleteMemberFromFirestore(id);
+src/App.tsx.backup-quota:744:    await batchSaveMembersToFirestore(newMembers);
+src/App.tsx.backup-quota:745:    await batchSavePaymentsToFirestore(newPaymentHistories);
+src/App.tsx.backup-quota:750:    await saveProfileToFirestore(updated);
+src/App.tsx.backup-quota:763:      await batchSaveMembersToFirestore(backupData.members);
+src/App.tsx.backup-quota:767:      await batchSavePaymentsToFirestore(backupData.payments);
+src/App.tsx.backup-quota:772:        await saveCashTransactionToFirestore(tx);
+src/App.tsx.backup-quota:778:        await saveLotteryWinnerToFirestore(w);
+src/App.tsx.backup-quota:783:      await saveProfileToFirestore(backupData.profile);
+src/App.tsx.backup-quota:1058:                  await batchSaveMembersToFirestore(INITIAL_MEMBERS);
+src/App.tsx.backup-quota:1061:                  await batchSaveMembersToFirestore(members);
+src/App.tsx.backup:7:import { collection, onSnapshot, doc } from 'firebase/firestore';
+src/App.tsx.backup:11:  saveMemberToFirestore, 
+src/App.tsx.backup:12:  deleteMemberFromFirestore, 
+src/App.tsx.backup:13:  batchSaveMembersToFirestore, 
+src/App.tsx.backup:14:  savePaymentHistoryToFirestore, 
+src/App.tsx.backup:15:  batchSavePaymentsToFirestore, 
+src/App.tsx.backup:16:  saveCashTransactionToFirestore, 
+src/App.tsx.backup:17:  deleteCashTransactionFromFirestore, 
+src/App.tsx.backup:18:  batchSaveCashTransactionsToFirestore,
+src/App.tsx.backup:19:  batchDeleteCashTransactionsFromFirestore,
+src/App.tsx.backup:20:  saveLotteryWinnerToFirestore, 
+src/App.tsx.backup:21:  deleteLotteryWinnerFromFirestore, 
+src/App.tsx.backup:22:  saveProfileToFirestore, 
+src/App.tsx.backup:53:import { subscribeToAuthChanges, logoutUser } from './lib/authService';
+src/App.tsx.backup:103:    const unsubscribe = subscribeToAuthChanges((user) => {
+src/App.tsx.backup:395:      const unsubMembers = onSnapshot(collection(db, COLLECTIONS.MEMBERS), (snapshot) => {
+src/App.tsx.backup:411:      const unsubPayments = onSnapshot(collection(db, COLLECTIONS.PAYMENTS), (snapshot) => {
+src/App.tsx.backup:461:      const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
+src/App.tsx.backup:477:      const unsubMemberDoc = onSnapshot(doc(db, COLLECTIONS.MEMBERS, memberId), (docSnap) => {
+src/App.tsx.backup:494:      const unsubPaymentDoc = onSnapshot(doc(db, COLLECTIONS.PAYMENTS, memberId), (docSnap) => {
+src/App.tsx.backup:515:    const unsubProfile = onSnapshot(doc(db, COLLECTIONS.APP_STATE, 'paguyuban_profile'), (docSnap) => {
+src/App.tsx.backup:644:    await savePaymentHistoryToFirestore(updatedPaymentRecord);
+src/App.tsx.backup:662:      await saveCashTransactionToFirestore(syncTx);
+src/App.tsx.backup:668:      await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup:680:    await saveCashTransactionToFirestore(newTx);
+src/App.tsx.backup:685:    await deleteCashTransactionFromFirestore(id);
+src/App.tsx.backup:696:    await saveLotteryWinnerToFirestore(newWinner);
+src/App.tsx.backup:706:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup:713:    await saveLotteryWinnerToFirestore(updatedWinner);
+src/App.tsx.backup:727:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup:732:    await deleteLotteryWinnerFromFirestore(id);
+src/App.tsx.backup:737:    await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup:753:      await batchSaveCashTransactionsToFirestore(result.addedTransactions);
+src/App.tsx.backup:756:      await batchDeleteCashTransactionsFromFirestore(result.deletedTxIds);
+src/App.tsx.backup:772:    await saveMemberToFirestore(newMember);
+src/App.tsx.backup:789:    await savePaymentHistoryToFirestore(newPayment);
+src/App.tsx.backup:794:    await saveMemberToFirestore(updatedMember);
+src/App.tsx.backup:800:    await deleteMemberFromFirestore(id);
+src/App.tsx.backup:834:    await batchSaveMembersToFirestore(newMembers);
+src/App.tsx.backup:835:    await batchSavePaymentsToFirestore(newPaymentHistories);
+src/App.tsx.backup:840:    await saveProfileToFirestore(updated);
+src/App.tsx.backup:853:      await batchSaveMembersToFirestore(backupData.members);
+src/App.tsx.backup:857:      await batchSavePaymentsToFirestore(backupData.payments);
+src/App.tsx.backup:862:        await saveCashTransactionToFirestore(tx);
+src/App.tsx.backup:868:        await saveLotteryWinnerToFirestore(w);
+src/App.tsx.backup:873:      await saveProfileToFirestore(backupData.profile);
+src/App.tsx.backup:1169:                  await batchSaveMembersToFirestore(INITIAL_MEMBERS);
+src/App.tsx.backup:1172:                  await batchSaveMembersToFirestore(members);
+src/App.tsx.backup-loading:7:import { collection, onSnapshot, doc } from 'firebase/firestore';
+src/App.tsx.backup-loading:11:  saveMemberToFirestore, 
+src/App.tsx.backup-loading:12:  deleteMemberFromFirestore, 
+src/App.tsx.backup-loading:13:  batchSaveMembersToFirestore, 
+src/App.tsx.backup-loading:14:  savePaymentHistoryToFirestore, 
+src/App.tsx.backup-loading:15:  batchSavePaymentsToFirestore, 
+src/App.tsx.backup-loading:16:  saveCashTransactionToFirestore, 
+src/App.tsx.backup-loading:17:  deleteCashTransactionFromFirestore, 
+src/App.tsx.backup-loading:18:  batchSaveCashTransactionsToFirestore,
+src/App.tsx.backup-loading:19:  batchDeleteCashTransactionsFromFirestore,
+src/App.tsx.backup-loading:20:  saveLotteryWinnerToFirestore, 
+src/App.tsx.backup-loading:21:  deleteLotteryWinnerFromFirestore, 
+src/App.tsx.backup-loading:22:  saveProfileToFirestore, 
+src/App.tsx.backup-loading:52:import { subscribeToAuthChanges, logoutUser } from './lib/authService';
+src/App.tsx.backup-loading:79:    const unsubscribe = subscribeToAuthChanges((user) => {
+src/App.tsx.backup-loading:370:      const unsubMembers = onSnapshot(collection(db, COLLECTIONS.MEMBERS), (snapshot) => {
+src/App.tsx.backup-loading:384:      const unsubPayments = onSnapshot(collection(db, COLLECTIONS.PAYMENTS), (snapshot) => {
+src/App.tsx.backup-loading:397:      const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
+src/App.tsx.backup-loading:413:      const unsubMemberDoc = onSnapshot(doc(db, COLLECTIONS.MEMBERS, memberId), (docSnap) => {
+src/App.tsx.backup-loading:430:      const unsubPaymentDoc = onSnapshot(doc(db, COLLECTIONS.PAYMENTS, memberId), (docSnap) => {
+src/App.tsx.backup-loading:448:    const unsubWinners = onSnapshot(collection(db, COLLECTIONS.LOTTERY_WINNERS), (snapshot) => {
+src/App.tsx.backup-loading:461:    const unsubProfile = onSnapshot(doc(db, COLLECTIONS.APP_STATE, 'paguyuban_profile'), (docSnap) => {
+src/App.tsx.backup-loading:558:      await savePaymentHistoryToFirestore(updatedPaymentRecord);
+src/App.tsx.backup-loading:575:      await saveCashTransactionToFirestore(syncTx);
+src/App.tsx.backup-loading:578:      await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup-loading:590:    await saveCashTransactionToFirestore(newTx);
+src/App.tsx.backup-loading:595:    await deleteCashTransactionFromFirestore(id);
+src/App.tsx.backup-loading:606:    await saveLotteryWinnerToFirestore(newWinner);
+src/App.tsx.backup-loading:616:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup-loading:623:    await saveLotteryWinnerToFirestore(updatedWinner);
+src/App.tsx.backup-loading:637:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup-loading:642:    await deleteLotteryWinnerFromFirestore(id);
+src/App.tsx.backup-loading:647:    await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup-loading:663:      await batchSaveCashTransactionsToFirestore(result.addedTransactions);
+src/App.tsx.backup-loading:666:      await batchDeleteCashTransactionsFromFirestore(result.deletedTxIds);
+src/App.tsx.backup-loading:682:    await saveMemberToFirestore(newMember);
+src/App.tsx.backup-loading:699:    await savePaymentHistoryToFirestore(newPayment);
+src/App.tsx.backup-loading:704:    await saveMemberToFirestore(updatedMember);
+src/App.tsx.backup-loading:710:    await deleteMemberFromFirestore(id);
+src/App.tsx.backup-loading:744:    await batchSaveMembersToFirestore(newMembers);
+src/App.tsx.backup-loading:745:    await batchSavePaymentsToFirestore(newPaymentHistories);
+src/App.tsx.backup-loading:750:    await saveProfileToFirestore(updated);
+src/App.tsx.backup-loading:763:      await batchSaveMembersToFirestore(backupData.members);
+src/App.tsx.backup-loading:767:      await batchSavePaymentsToFirestore(backupData.payments);
+src/App.tsx.backup-loading:772:        await saveCashTransactionToFirestore(tx);
+src/App.tsx.backup-loading:778:        await saveLotteryWinnerToFirestore(w);
+src/App.tsx.backup-loading:783:      await saveProfileToFirestore(backupData.profile);
+src/App.tsx.backup-loading:1058:                  await batchSaveMembersToFirestore(INITIAL_MEMBERS);
+src/App.tsx.backup-loading:1061:                  await batchSaveMembersToFirestore(members);
+src/lib/authService.ts:405:export function subscribeToAuthChanges(callback: (user: AuthUser | null) => void): () => void {
+src/lib/firestoreService.ts:6:  onSnapshot, 
+src/lib/firestoreService.ts:55:export async function saveMemberToFirestore(member: Member): Promise<void> {
+src/lib/firestoreService.ts:74:export async function deleteMemberFromFirestore(memberId: string): Promise<void> {
+src/lib/firestoreService.ts:93:export async function batchSaveMembersToFirestore(membersList: Member[]): Promise<void> {
+src/lib/firestoreService.ts:116:export async function savePaymentHistoryToFirestore(payment: MemberPaymentHistory): Promise<void> {
+src/lib/firestoreService.ts:135:export async function batchSavePaymentsToFirestore(paymentsList: MemberPaymentHistory[]): Promise<void> {
+src/lib/firestoreService.ts:158:export async function saveCashTransactionToFirestore(tx: CashTransaction): Promise<void> {
+src/lib/firestoreService.ts:177:export async function batchSaveCashTransactionsToFirestore(txList: CashTransaction[]): Promise<void> {
+src/lib/firestoreService.ts:200:export async function batchDeleteCashTransactionsFromFirestore(txIds: string[]): Promise<void> {
+src/lib/firestoreService.ts:223:export async function deleteCashTransactionFromFirestore(txId: string): Promise<void> {
+src/lib/firestoreService.ts:241:export async function saveLotteryWinnerToFirestore(winner: LotteryWinner): Promise<void> {
+src/lib/firestoreService.ts:260:export async function deleteLotteryWinnerFromFirestore(winnerId: string): Promise<void> {
+src/lib/firestoreService.ts:278:export async function saveProfileToFirestore(profile: PaguyubanProfile): Promise<void> {
+src/lib/firestoreService.ts:322:      await batchSaveMembersToFirestore(initialMembers);
+src/lib/firestoreService.ts:323:      await batchSavePaymentsToFirestore(initialPayments);
+src/lib/firestoreService.ts:363:export async function saveAdzanSettingsToFirestore(settings: AdzanSettings): Promise<void> {
+src/lib/firestoreService.ts:382:export function subscribeToAdzanSettings(
+src/lib/firestoreService.ts:387:    return onSnapshot(
+src/lib/firestoreService.ts:454:export async function getPublishedNewsFromFirestore(): Promise<NewsArticle[]> {
+src/lib/firestoreService.ts:511:export async function getNewsFromFirestore(): Promise<NewsArticle[]> {
+src/lib/firestoreService.ts:562:export async function saveNewsToFirestore(
+src/lib/firestoreService.ts:576:export async function updateNewsInFirestore(
+src/lib/firestoreService.ts:591:export async function deleteNewsFromFirestore(
+src/lib/firestoreService.ts:614:export async function getNewsCommentsFromFirestore(
+src/lib/firestoreService.ts:648:export async function saveNewsCommentToFirestore(
+src/lib/firebase.ts:41:      db = getFirestore(app, config.firestoreDatabaseId);
+src/lib/firestoreService.ts.backup-quota:6:  onSnapshot, 
+src/lib/firestoreService.ts.backup-quota:51:export async function saveMemberToFirestore(member: Member): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:70:export async function deleteMemberFromFirestore(memberId: string): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:89:export async function batchSaveMembersToFirestore(membersList: Member[]): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:112:export async function savePaymentHistoryToFirestore(payment: MemberPaymentHistory): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:131:export async function batchSavePaymentsToFirestore(paymentsList: MemberPaymentHistory[]): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:154:export async function saveCashTransactionToFirestore(tx: CashTransaction): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:173:export async function batchSaveCashTransactionsToFirestore(txList: CashTransaction[]): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:196:export async function batchDeleteCashTransactionsFromFirestore(txIds: string[]): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:219:export async function deleteCashTransactionFromFirestore(txId: string): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:237:export async function saveLotteryWinnerToFirestore(winner: LotteryWinner): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:256:export async function deleteLotteryWinnerFromFirestore(winnerId: string): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:274:export async function saveProfileToFirestore(profile: PaguyubanProfile): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:307:      await batchSaveMembersToFirestore(initialMembers);
+src/lib/firestoreService.ts.backup-quota:308:      await batchSavePaymentsToFirestore(initialPayments);
+src/lib/firestoreService.ts.backup-quota:332:export async function saveAdzanSettingsToFirestore(settings: AdzanSettings): Promise<void> {
+src/lib/firestoreService.ts.backup-quota:351:export function subscribeToAdzanSettings(
+src/lib/firestoreService.ts.backup-quota:356:    return onSnapshot(
+src/lib/authService.ts.backup-loading:400:export function subscribeToAuthChanges(callback: (user: AuthUser | null) => void): () => void {
+src/App.tsx.backup-listener:7:import { collection, onSnapshot, doc } from 'firebase/firestore';
+src/App.tsx.backup-listener:11:  saveMemberToFirestore, 
+src/App.tsx.backup-listener:12:  deleteMemberFromFirestore, 
+src/App.tsx.backup-listener:13:  batchSaveMembersToFirestore, 
+src/App.tsx.backup-listener:14:  savePaymentHistoryToFirestore, 
+src/App.tsx.backup-listener:15:  batchSavePaymentsToFirestore, 
+src/App.tsx.backup-listener:16:  saveCashTransactionToFirestore, 
+src/App.tsx.backup-listener:17:  deleteCashTransactionFromFirestore, 
+src/App.tsx.backup-listener:18:  batchSaveCashTransactionsToFirestore,
+src/App.tsx.backup-listener:19:  batchDeleteCashTransactionsFromFirestore,
+src/App.tsx.backup-listener:20:  saveLotteryWinnerToFirestore, 
+src/App.tsx.backup-listener:21:  deleteLotteryWinnerFromFirestore, 
+src/App.tsx.backup-listener:22:  saveProfileToFirestore, 
+src/App.tsx.backup-listener:52:import { subscribeToAuthChanges, logoutUser } from './lib/authService';
+src/App.tsx.backup-listener:79:    const unsubscribe = subscribeToAuthChanges((user) => {
+src/App.tsx.backup-listener:370:      const unsubMembers = onSnapshot(collection(db, COLLECTIONS.MEMBERS), (snapshot) => {
+src/App.tsx.backup-listener:384:      const unsubPayments = onSnapshot(collection(db, COLLECTIONS.PAYMENTS), (snapshot) => {
+src/App.tsx.backup-listener:397:      const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
+src/App.tsx.backup-listener:413:      const unsubMemberDoc = onSnapshot(doc(db, COLLECTIONS.MEMBERS, memberId), (docSnap) => {
+src/App.tsx.backup-listener:430:      const unsubPaymentDoc = onSnapshot(doc(db, COLLECTIONS.PAYMENTS, memberId), (docSnap) => {
+src/App.tsx.backup-listener:448:    const unsubWinners = onSnapshot(collection(db, COLLECTIONS.LOTTERY_WINNERS), (snapshot) => {
+src/App.tsx.backup-listener:461:    const unsubProfile = onSnapshot(doc(db, COLLECTIONS.APP_STATE, 'paguyuban_profile'), (docSnap) => {
+src/App.tsx.backup-listener:558:      await savePaymentHistoryToFirestore(updatedPaymentRecord);
+src/App.tsx.backup-listener:575:      await saveCashTransactionToFirestore(syncTx);
+src/App.tsx.backup-listener:578:      await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup-listener:590:    await saveCashTransactionToFirestore(newTx);
+src/App.tsx.backup-listener:595:    await deleteCashTransactionFromFirestore(id);
+src/App.tsx.backup-listener:606:    await saveLotteryWinnerToFirestore(newWinner);
+src/App.tsx.backup-listener:616:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup-listener:623:    await saveLotteryWinnerToFirestore(updatedWinner);
+src/App.tsx.backup-listener:637:    await saveCashTransactionToFirestore(syncPayoutTx);
+src/App.tsx.backup-listener:642:    await deleteLotteryWinnerFromFirestore(id);
+src/App.tsx.backup-listener:647:    await deleteCashTransactionFromFirestore(syncTxId);
+src/App.tsx.backup-listener:663:      await batchSaveCashTransactionsToFirestore(result.addedTransactions);
+src/App.tsx.backup-listener:666:      await batchDeleteCashTransactionsFromFirestore(result.deletedTxIds);
+src/App.tsx.backup-listener:682:    await saveMemberToFirestore(newMember);
+src/App.tsx.backup-listener:699:    await savePaymentHistoryToFirestore(newPayment);
+src/App.tsx.backup-listener:704:    await saveMemberToFirestore(updatedMember);
+src/App.tsx.backup-listener:710:    await deleteMemberFromFirestore(id);
+src/App.tsx.backup-listener:744:    await batchSaveMembersToFirestore(newMembers);
+src/App.tsx.backup-listener:745:    await batchSavePaymentsToFirestore(newPaymentHistories);
+src/App.tsx.backup-listener:750:    await saveProfileToFirestore(updated);
+src/App.tsx.backup-listener:763:      await batchSaveMembersToFirestore(backupData.members);
+src/App.tsx.backup-listener:767:      await batchSavePaymentsToFirestore(backupData.payments);
+src/App.tsx.backup-listener:772:        await saveCashTransactionToFirestore(tx);
+src/App.tsx.backup-listener:778:        await saveLotteryWinnerToFirestore(w);
+src/App.tsx.backup-listener:783:      await saveProfileToFirestore(backupData.profile);
+src/App.tsx.backup-listener:1058:                  await batchSaveMembersToFirestore(INITIAL_MEMBERS);
+src/App.tsx.backup-listener:1061:                  await batchSaveMembersToFirestore(members);
