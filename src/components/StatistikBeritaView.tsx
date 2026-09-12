@@ -3,9 +3,11 @@ import {
   BarChart3,
   CalendarDays,
   CheckCircle2,
+  Eye,
   FileText,
   FolderOpen,
   RefreshCw,
+  Trophy,
   XCircle,
 } from 'lucide-react';
 import {
@@ -31,7 +33,10 @@ const formatDate = (value?: Date) => {
 
 const StatistikBeritaView: React.FC = () => {
   const [news, setNews] = useState<NewsArticle[]>([]);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
+  const [totalViews, setTotalViews] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [viewsLoading, setViewsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const loadNews = async () => {
@@ -41,10 +46,66 @@ const StatistikBeritaView: React.FC = () => {
     try {
       const result = await getNewsFromFirestore();
       setNews(result);
+
+      /*
+       * Ambil statistik view dari Cloudflare Worker/Aiven.
+       * Firestore tetap menjadi sumber data artikel.
+       */
+      setViewsLoading(true);
+
+      const ids = result
+        .map((article) => article.id)
+        .filter(Boolean);
+
+      if (ids.length === 0) {
+        setViewCounts({});
+        setTotalViews(0);
+      } else {
+        const response = await fetch(
+          `/api/news-view?newsIds=${encodeURIComponent(ids.join(','))}`,
+          {
+            method: 'GET',
+            headers: {
+              accept: 'application/json',
+            },
+            cache: 'no-store',
+          }
+        );
+
+        const payload = await response.json();
+
+        if (!response.ok || !payload?.success) {
+          throw new Error(
+            payload?.error ||
+              'Statistik view belum dapat dimuat.'
+          );
+        }
+
+        const counts =
+          payload?.counts &&
+          typeof payload.counts === 'object'
+            ? Object.fromEntries(
+                Object.entries(payload.counts).map(
+                  ([id, value]) => [
+                    id,
+                    Number(value || 0),
+                  ]
+                )
+              )
+            : {};
+
+        setViewCounts(counts);
+        setTotalViews(Number(payload?.totalViews || 0));
+      }
     } catch (err) {
       console.error('Gagal memuat statistik berita:', err);
-      setError('Statistik berita belum dapat dimuat.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Statistik berita belum dapat dimuat.'
+      );
     } finally {
+      setViewsLoading(false);
       setLoading(false);
     }
   };
@@ -84,6 +145,15 @@ const StatistikBeritaView: React.FC = () => {
       )
       .slice(0, 5);
 
+    const byViews = [...news]
+      .map((article) => ({
+        article,
+        views: Number(viewCounts[article.id] || 0),
+      }))
+      .sort((a, b) => b.views - a.views);
+
+    const topViewed = byViews.slice(0, 5);
+
     return {
       total: news.length,
       published,
@@ -91,8 +161,9 @@ const StatistikBeritaView: React.FC = () => {
       categoryCount: categories.size,
       sortedCategories,
       latest,
+      topViewed,
     };
-  }, [news]);
+  }, [news, viewCounts]);
 
   if (loading) {
     return (
@@ -138,7 +209,7 @@ const StatistikBeritaView: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between">
             <FileText className="h-8 w-8 text-blue-600" />
@@ -184,6 +255,18 @@ const StatistikBeritaView: React.FC = () => {
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-500">
             Kategori
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between">
+            <Eye className="h-8 w-8 text-indigo-600" />
+            <span className="text-3xl font-bold text-indigo-600">
+              {viewsLoading ? '...' : totalViews.toLocaleString('id-ID')}
+            </span>
+          </div>
+          <p className="mt-3 text-sm font-semibold text-slate-500">
+            Total View
           </p>
         </div>
       </div>
@@ -287,10 +370,168 @@ const StatistikBeritaView: React.FC = () => {
         </section>
       </div>
 
-      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
-        Statistik ini hanya menampilkan data yang tersedia di
-        Firestore. Jumlah pembaca/view tidak ditampilkan karena
-        field penghitung view belum tersedia pada data berita.
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center gap-2">
+          <Trophy className="h-5 w-5 text-amber-500" />
+          <div>
+            <h2 className="font-bold text-slate-900 dark:text-white">
+              Berita Paling Banyak Dibaca
+            </h2>
+            <p className="text-xs text-slate-500">
+              Jumlah view dihitung dari pembacaan unik per pengunjung
+              dalam interval 30 menit.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          {statistics.topViewed.length === 0 ? (
+            <p className="py-4 text-sm text-slate-500">
+              Belum ada data berita.
+            </p>
+          ) : (
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left dark:border-slate-800">
+                  <th className="px-3 py-3 font-semibold text-slate-500">
+                    #
+                  </th>
+                  <th className="px-3 py-3 font-semibold text-slate-500">
+                    Berita
+                  </th>
+                  <th className="px-3 py-3 font-semibold text-slate-500">
+                    Kategori
+                  </th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-500">
+                    View
+                  </th>
+                  <th className="px-3 py-3 text-right font-semibold text-slate-500">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {statistics.topViewed.map(
+                  ({ article, views }, index) => (
+                    <tr
+                      key={article.id}
+                      className="border-b border-slate-100 last:border-0 dark:border-slate-800"
+                    >
+                      <td className="px-3 py-3 font-bold text-slate-400">
+                        {index + 1}
+                      </td>
+                      <td className="max-w-[420px] px-3 py-3">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">
+                          {article.title}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          {formatDate(
+                            article.publishedAt ||
+                              article.createdAt
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-slate-600 dark:text-slate-300">
+                        {article.category?.trim() ||
+                          'Tanpa Kategori'}
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 font-bold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                          <Eye className="h-3.5 w-3.5" />
+                          {views.toLocaleString('id-ID')}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            article.status === 'published'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                          }`}
+                        >
+                          {article.status === 'published'
+                            ? 'Terbit'
+                            : 'Draft'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-indigo-600" />
+          <div>
+            <h2 className="font-bold text-slate-900 dark:text-white">
+              View Per Artikel
+            </h2>
+            <p className="text-xs text-slate-500">
+              Data aktual dari Cloudflare Worker dan Aiven.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          {news.length === 0 ? (
+            <p className="py-4 text-sm text-slate-500">
+              Belum ada berita.
+            </p>
+          ) : (
+            [...news]
+              .sort(
+                (a, b) =>
+                  Number(viewCounts[b.id] || 0) -
+                  Number(viewCounts[a.id] || 0)
+              )
+              .map((article) => {
+                const views = Number(
+                  viewCounts[article.id] || 0
+                );
+
+                return (
+                  <div
+                    key={article.id}
+                    className="flex flex-col gap-2 rounded-xl border border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-800 dark:text-slate-200">
+                        {article.title}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {article.category?.trim() ||
+                          'Tanpa Kategori'}{' '}
+                        •{' '}
+                        {article.status === 'published'
+                          ? 'Terbit'
+                          : 'Draft'}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <div className="text-lg font-bold text-indigo-600">
+                        {views.toLocaleString('id-ID')}
+                      </div>
+                      <div className="text-[11px] uppercase tracking-wide text-slate-400">
+                        view
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+          )}
+        </div>
+      </section>
+
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+        Statistik view sekarang mengambil data langsung dari
+        tabel <strong>news_view_events</strong> melalui endpoint
+        statistik read-only. Pencatatan view tetap menggunakan
+        deduplikasi 30 menit per pengunjung.
       </div>
     </div>
   );

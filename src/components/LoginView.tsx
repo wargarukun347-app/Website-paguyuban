@@ -38,6 +38,9 @@ interface LoginViewProps {
   logoUrl?: string;
 }
 
+const LOGIN_TECH_BACKGROUND =
+  'https://static.vecteezy.com/system/resources/previews/028/241/446/non_2x/screen-technology-background-use-the-login-to-access-the-system-it-is-a-illustration-designed-to-look-modern-and-hi-tech-suitable-for-work-related-to-technology-vector.jpg';
+
 export const LoginView: React.FC<LoginViewProps> = ({
   members,
   onLogin,
@@ -214,7 +217,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-between text-slate-900 dark:text-slate-100 selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden transition-colors duration-200">
+    <div className="overflow-hidden relative min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-between text-slate-900 dark:text-slate-100 selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden transition-colors duration-200">
       {/* Background Subtle Gradient Glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-600/10 dark:bg-emerald-600/15 rounded-full blur-3xl" />

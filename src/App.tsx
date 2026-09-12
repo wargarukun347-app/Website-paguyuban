@@ -8,6 +8,8 @@ import { collection, onSnapshot, doc, getDocs, setDoc } from 'firebase/firestore
 import { db } from './lib/firebase';
 import { 
   COLLECTIONS, 
+  subscribeAdminActivity,
+  saveAdminActivity,
   saveMemberToFirestore, 
   deleteMemberFromFirestore, 
   batchSaveMembersToFirestore, 
@@ -19,8 +21,10 @@ import {
   batchDeleteCashTransactionsFromFirestore,
   saveLotteryWinnerToFirestore, 
   deleteLotteryWinnerFromFirestore, 
-  saveProfileToFirestore, 
-  seedInitialDataIfEmpty 
+  saveProfileToFirestore,
+  saveFinanceSummaryToFirestore,
+  saveMemberFinanceSummaryToFirestore,
+  seedInitialDataIfEmpty
 } from './lib/firestoreService';
 import { 
   buildArisanSyncTransaction, 
@@ -31,6 +35,7 @@ import {
 import { Header } from './components/Header';
 import { Sidebar, TabType } from './components/Sidebar';
 import BeritaView from './components/BeritaView';
+import NewsAdminHub from './components/NewsAdminHub';
 import MemberNewsPortal from './components/MemberNewsPortal';
 const DashboardView = lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
 const ProfileView = lazy(() => import('./components/ProfileView').then(m => ({ default: m.ProfileView })));
@@ -74,6 +79,68 @@ const STORAGE_KEYS = {
   THEME: 'arisan_p3n_theme_v1',
 };
 
+
+function getTabFromPath(): TabType | null {
+  if (typeof window === 'undefined') return null;
+
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+
+  const routeMap: Record<string, TabType> = {
+    '/admin/dashboard': 'dashboard',
+    '/admin/pesan': 'messages',
+    '/admin/jadwal-sholat': 'prayer_times',
+    '/admin/profil': 'profile',
+    '/admin/arisan': 'arisan',
+    '/admin/iuran': 'iuran',
+    '/admin/kas-masuk': 'cash_in',
+    '/admin/kas-keluar': 'cash_out',
+    '/admin/kocokan': 'lottery',
+    '/admin/berita': 'berita',
+    '/admin/berita/statistik': 'statistik_berita',
+    '/admin/berita/adsense': 'adsense_berita',
+    '/admin/anggota': 'members',
+
+    '/anggota/dashboard': 'user_portal',
+    '/anggota/berita': 'berita',
+    '/anggota/jadwal-sholat': 'prayer_times',
+    '/anggota/profil': 'profile',
+  };
+
+  return routeMap[path] || null;
+}
+
+function getPathFromTab(
+  tab: TabType,
+  role?: AuthUser['role'] | null
+): string | null {
+  const isAdmin = role === 'admin';
+
+  const adminRoutes: Partial<Record<TabType, string>> = {
+    dashboard: '/admin/dashboard',
+    messages: '/admin/pesan',
+    prayer_times: '/admin/jadwal-sholat',
+    profile: '/admin/profil',
+    arisan: '/admin/arisan',
+    iuran: '/admin/iuran',
+    cash_in: '/admin/kas-masuk',
+    cash_out: '/admin/kas-keluar',
+    lottery: '/admin/kocokan',
+    berita: '/admin/berita',
+    statistik_berita: '/admin/berita/statistik',
+    adsense_berita: '/admin/berita/adsense',
+    members: '/admin/anggota',
+  };
+
+  const memberRoutes: Partial<Record<TabType, string>> = {
+    user_portal: '/anggota/dashboard',
+    berita: '/anggota/berita',
+    prayer_times: '/anggota/jadwal-sholat',
+    profile: '/anggota/profil',
+  };
+
+  return (isAdmin ? adminRoutes : memberRoutes)[tab] || null;
+}
+
 function getPublicNewsPath() {
   if (typeof window === 'undefined') return null;
 
@@ -100,6 +167,7 @@ function App() {
   const publicNewsRoute = getPublicNewsPath();
   // Authentication State
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [adminActivity, setAdminActivity] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
 
   // Subscribe to Firebase Authentication state changes
@@ -154,6 +222,12 @@ function App() {
 
   // Active Tab & Navigation
   const [activeTab, setActiveTabState] = useState<TabType>(() => {
+    const pathTab = getTabFromPath();
+
+    if (pathTab) {
+      return pathTab;
+    }
+
     const saved = localStorage.getItem('arisan_p3n_active_tab_v1');
     return (saved as TabType) || 'dashboard';
   });
@@ -161,7 +235,38 @@ function App() {
   const setActiveTab = useCallback((tab: TabType) => {
     setActiveTabState(tab);
     localStorage.setItem('arisan_p3n_active_tab_v1', tab);
+
+    if (typeof window !== 'undefined') {
+      const nextPath = getPathFromTab(tab, currentUser?.role);
+      const currentPath =
+        window.location.pathname.replace(/\/+$/, '') || '/';
+
+      if (
+        nextPath &&
+        nextPath !== currentPath &&
+        !currentPath.startsWith('/berita')
+      ) {
+        window.history.pushState({ tab }, '', nextPath);
+      }
+    }
+  }, [currentUser?.role]);
+  useEffect(() => {
+    const handlePopState = () => {
+      const pathTab = getTabFromPath();
+
+      if (pathTab) {
+        setActiveTabState(pathTab);
+        localStorage.setItem('arisan_p3n_active_tab_v1', pathTab);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const activeYear = 2026;
 
@@ -179,7 +284,7 @@ const handleSelectTab = useCallback((tab: TabType) => {
   }
 
   setActiveTab(tab);
-}, [currentUser]);
+}, [currentUser, setActiveTab]);
 
 // Authentication Handlers
   const handleLogin = (user: AuthUser) => {
@@ -219,6 +324,19 @@ const handleSelectTab = useCallback((tab: TabType) => {
     }
     return INITIAL_MEMBERS;
   });
+
+  useEffect(() => {
+    if (currentUser?.role !== 'admin') {
+      setAdminActivity(null);
+      return;
+    }
+
+    const unsubAdminActivity = subscribeAdminActivity((activity) => {
+      setAdminActivity(activity);
+    });
+
+    return () => unsubAdminActivity();
+  }, [currentUser?.role]);
 
   // Sinkronkan identitas akun anggota dengan data anggota resmi dari admin.
   // memberId = Member.id adalah IDENTITAS KANONIK.
@@ -304,6 +422,29 @@ const handleSelectTab = useCallback((tab: TabType) => {
     }
     return INITIAL_CASH_TRANSACTIONS;
   });
+
+  // Realtime finance summary aman untuk dashboard anggota.
+  // Anggota tidak membaca collection cash_transactions secara langsung.
+  const [financeSummary, setFinanceSummary] = useState<{
+    totalKasMasuk: number;
+    totalKasKeluar: number;
+    saldoKasBersih: number;
+    updatedAt: string;
+  } | null>(null);
+
+  // Ringkasan transaksi kas khusus anggota berdasarkan memberId.
+  // Data ini berasal dari collection member_finance/{memberId}.
+  const [memberFinanceSummary, setMemberFinanceSummary] =
+    useState<{
+      memberId: string;
+      memberName: string;
+      memberPhone: string;
+      totalCashIn: number;
+      totalCashOut: number;
+      netCash: number;
+      transactionCount: number;
+      updatedAt: string;
+    } | null>(null);
 
   // Lottery Winners State
   const [lotteryWinners, setLotteryWinners] = useState<LotteryWinner[]>(() => {
@@ -511,15 +652,90 @@ const handleSelectTab = useCallback((tab: TabType) => {
 
       // Admin: Listen to Cash Transactions collection
       const unsubCashTx = onSnapshot(collection(db, COLLECTIONS.CASH_TRANSACTIONS), (snapshot) => {
-        if (!snapshot.empty) {
-          const cloudTx: CashTransaction[] = [];
-          snapshot.forEach((docSnap) => {
-            cloudTx.push(docSnap.data() as CashTransaction);
+        const cloudTx: CashTransaction[] = [];
+
+        snapshot.forEach((docSnap) => {
+          cloudTx.push(docSnap.data() as CashTransaction);
+        });
+
+        cloudTx.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setCashTransactions(cloudTx);
+        localStorage.setItem(STORAGE_KEYS.CASH_TX, JSON.stringify(cloudTx));
+
+        // Summary dihitung dari snapshot Firestore yang authoritative.
+        // Ini mencegah summary mengambil state lokal yang masih tertinggal.
+        const totalKasMasuk = cloudTx
+          .filter((tx) => tx.type === 'in')
+          .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+        const totalKasKeluar = cloudTx
+          .filter((tx) => tx.type === 'out')
+          .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+
+        const financeSummary = {
+          totalKasMasuk,
+          totalKasKeluar,
+          saldoKasBersih: totalKasMasuk - totalKasKeluar,
+          updatedAt: new Date().toISOString(),
+        };
+
+        void saveFinanceSummaryToFirestore(financeSummary);
+
+        // ====================================================
+        // MEMBER FINANCE REALTIME SUMMARY
+        // Hanya transaksi kas yang mempunyai memberId.
+        // ====================================================
+        const memberTotals = new Map<
+          string,
+          {
+            totalCashIn: number;
+            totalCashOut: number;
+            transactionCount: number;
+          }
+        >();
+
+        cloudTx.forEach((tx) => {
+          if (!tx.memberId) return;
+
+          const current = memberTotals.get(tx.memberId) || {
+            totalCashIn: 0,
+            totalCashOut: 0,
+            transactionCount: 0,
+          };
+
+          if (tx.type === 'in') {
+            current.totalCashIn += Number(tx.amount || 0);
+          } else {
+            current.totalCashOut += Number(tx.amount || 0);
+          }
+
+          current.transactionCount += 1;
+          memberTotals.set(tx.memberId, current);
+        });
+
+        // Pastikan SETIAP anggota memiliki summary terbaru.
+        // Jika tidak ada transaksi kas, summary disimpan sebagai nol
+        // sehingga data lama tidak tertinggal di member_finance/{memberId}.
+        members.forEach((member) => {
+          const totals = memberTotals.get(member.id) || {
+            totalCashIn: 0,
+            totalCashOut: 0,
+            transactionCount: 0,
+          };
+
+          void saveMemberFinanceSummaryToFirestore({
+            memberId: member.id,
+            memberName: member.name,
+            memberPhone: member.phone,
+            totalCashIn: totals.totalCashIn,
+            totalCashOut: totals.totalCashOut,
+            netCash: totals.totalCashIn - totals.totalCashOut,
+            transactionCount: totals.transactionCount,
+            updatedAt: new Date().toISOString(),
           });
-          cloudTx.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setCashTransactions(cloudTx);
-          localStorage.setItem(STORAGE_KEYS.CASH_TX, JSON.stringify(cloudTx));
-        }
+        });
+
       }, (err) => console.warn('CashTx snapshot listener:', err));
       unsubs.push(unsubCashTx);
 
@@ -571,6 +787,37 @@ const handleSelectTab = useCallback((tab: TabType) => {
         }
       }, (err) => console.warn('Single payment snapshot listener:', err));
       unsubs.push(unsubPaymentDoc);
+
+      // Member: realtime finance summary milik sendiri.
+      const unsubMemberFinance = onSnapshot(
+        doc(db, COLLECTIONS.MEMBER_FINANCE, memberId),
+        (docSnap) => {
+          if (docSnap.exists()) {
+            setMemberFinanceSummary(
+              docSnap.data() as {
+                memberId: string;
+                memberName: string;
+                memberPhone: string;
+                totalCashIn: number;
+                totalCashOut: number;
+                netCash: number;
+                transactionCount: number;
+                updatedAt: string;
+              }
+            );
+          } else {
+            setMemberFinanceSummary(null);
+          }
+        },
+        (err) =>
+          console.warn(
+            'Member finance snapshot listener:',
+            err
+          )
+      );
+
+      unsubs.push(unsubMemberFinance);
+
     }
 
     // Lottery winners are kept from localStorage and synchronized on add/update/delete.
@@ -587,6 +834,35 @@ const handleSelectTab = useCallback((tab: TabType) => {
       }
     }, (err) => console.warn('Profile snapshot listener:', err));
     unsubs.push(unsubProfile);
+
+    // Both Admin & Member: Listen to the safe finance summary.
+    // Anggota membaca ringkasan saja, bukan collection cash_transactions.
+    const unsubFinanceSummary = onSnapshot(
+      doc(db, COLLECTIONS.APP_STATE, 'paguyuban_finance_summary'),
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          return;
+        }
+
+        const data = docSnap.data();
+
+        if (
+          typeof data.totalKasMasuk === 'number' &&
+          typeof data.totalKasKeluar === 'number' &&
+          typeof data.saldoKasBersih === 'number' &&
+          typeof data.updatedAt === 'string'
+        ) {
+          setFinanceSummary({
+            totalKasMasuk: data.totalKasMasuk,
+            totalKasKeluar: data.totalKasKeluar,
+            saldoKasBersih: data.saldoKasBersih,
+            updatedAt: data.updatedAt,
+          });
+        }
+      },
+      (err) => console.warn('Finance summary snapshot listener:', err)
+    );
+    unsubs.push(unsubFinanceSummary);
 
     return () => {
       isSubscribed = false;
@@ -711,6 +987,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
     // Save the COMPLETE payment history to Firestore.
     // merge:true in firestoreService preserves the other fields/months.
     await savePaymentHistoryToFirestore(updatedPaymentRecord);
+    await saveAdminActivity({
+      action: 'Pembayaran anggota diubah',
+      detail: 'Riwayat pembayaran anggota diperbarui',
+      module: 'Pembayaran',
+    });
 
     // Synchronize directly with Cash Transactions (Buku Kas Masuk)
     const syncTxId = `tx-sync-${type}-${memberId}-${activeYear}-${month}`;
@@ -729,12 +1010,27 @@ const handleSelectTab = useCallback((tab: TabType) => {
       });
 
       await saveCashTransactionToFirestore(syncTx);
+      await saveAdminActivity({
+        action: 'Transaksi kas diperbarui',
+        detail: 'Transaksi kas anggota diperbarui',
+        module: 'Kas',
+      });
     } else {
       setCashTransactions((prev) =>
         prev.filter((t) => t.id !== syncTxId)
       );
 
       await deleteCashTransactionFromFirestore(syncTxId);
+    await saveAdminActivity({
+      action: 'Transaksi hadiah undian dihapus',
+      detail: 'Transaksi kas hadiah undian dihapus',
+      module: 'Undian',
+    });
+      await saveAdminActivity({
+        action: 'Transaksi kas dihapus',
+        detail: 'Transaksi kas dihapus dari sistem',
+        module: 'Kas',
+      });
     }
   };
 
@@ -747,11 +1043,21 @@ const handleSelectTab = useCallback((tab: TabType) => {
     };
     setCashTransactions((prev) => [newTx, ...prev]);
     await saveCashTransactionToFirestore(newTx);
+    await saveAdminActivity({
+      action: 'Transaksi kas ditambahkan',
+      detail: 'Transaksi kas baru ditambahkan',
+      module: 'Kas',
+    });
   };
 
   const handleDeleteCashTransaction = async (id: string) => {
     setCashTransactions((prev) => prev.filter((t) => t.id !== id));
     await deleteCashTransactionFromFirestore(id);
+    await saveAdminActivity({
+      action: 'Transaksi kas dihapus',
+      detail: 'Transaksi kas dihapus dari sistem',
+      module: 'Kas',
+    });
   };
 
   // Add Lottery Winner with instant Cash Out synchronization
@@ -763,6 +1069,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
     };
     setLotteryWinners((prev) => [...prev, newWinner]);
     await saveLotteryWinnerToFirestore(newWinner);
+    await saveAdminActivity({
+      action: 'Pemenang undian ditambahkan',
+      detail: 'Data pemenang undian ditambahkan',
+      module: 'Undian',
+    });
 
     // Automatically create synchronized cash transaction for payout (Buku Kas Keluar)
     const syncPayoutTx = buildLotterySyncTransaction(newWinner, activeYear);
@@ -773,6 +1084,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
       );
     });
     await saveCashTransactionToFirestore(syncPayoutTx);
+    await saveAdminActivity({
+      action: 'Transaksi hadiah undian disimpan',
+      detail: 'Transaksi kas hadiah undian disimpan',
+      module: 'Undian',
+    });
   };
 
   const handleUpdateLotteryWinner = async (updatedWinner: LotteryWinner) => {
@@ -780,6 +1096,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
       prev.map((w) => (w.id === updatedWinner.id ? updatedWinner : w))
     );
     await saveLotteryWinnerToFirestore(updatedWinner);
+    await saveAdminActivity({
+      action: 'Pemenang undian diperbarui',
+      detail: 'Data pemenang undian diperbarui',
+      module: 'Undian',
+    });
 
     // Update synchronized cash transaction
     const syncPayoutTx = buildLotterySyncTransaction(updatedWinner, activeYear);
@@ -799,6 +1120,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
   const handleDeleteLotteryWinner = async (id: string) => {
     setLotteryWinners((prev) => prev.filter((w) => w.id !== id));
     await deleteLotteryWinnerFromFirestore(id);
+    await saveAdminActivity({
+      action: 'Pemenang undian dihapus',
+      detail: 'Data pemenang undian dihapus',
+      module: 'Undian',
+    });
 
     // Delete synchronized cash transaction
     const syncTxId = `tx-sync-lottery-${id}`;
@@ -964,6 +1290,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
 
     setMembers((prev) => [...prev, newMember]);
     await saveMemberToFirestore(newMember);
+    await saveAdminActivity({
+      action: 'Anggota ditambahkan',
+      detail: 'Data anggota baru ditambahkan',
+      module: 'Anggota',
+    });
 
     // Initialize empty payment record
     const emptyArisan: { [key: string]: any } = {};
@@ -996,6 +1327,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
     );
 
     await saveMemberToFirestore(normalizedMember);
+    await saveAdminActivity({
+      action: 'Anggota diperbarui',
+      detail: 'Data anggota diperbarui',
+      module: 'Anggota',
+    });
 
     // Jika email cocok dengan akun Firebase,
     // users/{uid}.memberId dan members/{Member.id}.userId
@@ -1007,6 +1343,11 @@ const handleSelectTab = useCallback((tab: TabType) => {
     setMembers((prev) => prev.filter((m) => m.id !== id));
     setPayments((prev) => prev.filter((p) => p.memberId !== id));
     await deleteMemberFromFirestore(id);
+    await saveAdminActivity({
+      action: 'Anggota dihapus',
+      detail: 'Data anggota dihapus dari sistem',
+      module: 'Anggota',
+    });
   };
 
   const handleBulkImportMembers = async (importedList: Omit<Member, 'id' | 'no'>[]) => {
@@ -1041,12 +1382,27 @@ const handleSelectTab = useCallback((tab: TabType) => {
     setPayments((prev) => [...prev, ...newPaymentHistories]);
 
     await batchSaveMembersToFirestore(newMembers);
+    await saveAdminActivity({
+      action: 'Data anggota diimpor',
+      detail: 'Data anggota diproses secara batch',
+      module: 'Anggota',
+    });
     await batchSavePaymentsToFirestore(newPaymentHistories);
+    await saveAdminActivity({
+      action: 'Data pembayaran diimpor',
+      detail: 'Data pembayaran diproses secara batch',
+      module: 'Pembayaran',
+    });
   };
 
   const handleUpdateProfile = async (updated: PaguyubanProfile) => {
     setProfile(updated);
     await saveProfileToFirestore(updated);
+    await saveAdminActivity({
+      action: 'Profil Paguyuban diperbarui',
+      detail: 'Data profil dan pengurus Paguyuban diperbarui',
+      module: 'Profil',
+    });
   };
 
   // Restore data from Google Drive or JSON file
@@ -1258,6 +1614,8 @@ const handleSelectTab = useCallback((tab: TabType) => {
                 payments={payments}
                 lotteryWinners={lotteryWinners}
                 cashTransactions={cashTransactions}
+                financeSummary={financeSummary}
+                memberFinanceSummary={memberFinanceSummary}
                 profile={profile}
                 activeYear={activeYear}
                 onOpenReceipt={(member, month, type) => setReceiptModal({ member, month, type })}
@@ -1333,6 +1691,7 @@ const handleSelectTab = useCallback((tab: TabType) => {
             {activeTab === 'cash_in' && currentUser.role === 'admin' && (
               <CashInView
                 transactions={cashTransactions}
+                  members={members}
                 logoUrl={profile.logoUrl || '/logo.svg'}
                 onAddTransaction={(tx) => handleAddCashTransaction(tx, 'in')}
                 onDeleteTransaction={handleDeleteCashTransaction}
@@ -1343,6 +1702,7 @@ const handleSelectTab = useCallback((tab: TabType) => {
             {activeTab === 'cash_out' && currentUser.role === 'admin' && (
               <CashOutView
                 transactions={cashTransactions}
+                  members={members}
                 logoUrl={profile.logoUrl || '/logo.svg'}
                 onAddTransaction={(tx) => handleAddCashTransaction(tx, 'out')}
                 onDeleteTransaction={handleDeleteCashTransaction}
@@ -1365,21 +1725,19 @@ const handleSelectTab = useCallback((tab: TabType) => {
 
             {activeTab === 'berita' && (
               currentUser.role === 'admin' ? (
-                <BeritaView
-                  isAdmin={true}
-                  currentUser={currentUser}
-                />
+                <NewsAdminHub
+                  activeSection="postingan"
+                  statistikContent={<StatistikBeritaView />}
+                  adsenseContent={<AdSenseBeritaView />}
+                >
+                  <BeritaView
+                    isAdmin={true}
+                    currentUser={currentUser}
+                  />
+                </NewsAdminHub>
               ) : (
                 <MemberNewsPortal />
               )
-            )}
-
-            {activeTab === 'statistik_berita' && currentUser.role === 'admin' && (
-              <StatistikBeritaView />
-            )}
-
-            {activeTab === 'adsense_berita' && currentUser.role === 'admin' && (
-              <AdSenseBeritaView />
             )}
 
             {activeTab === 'members' && currentUser.role === 'admin' && (

@@ -169,7 +169,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
     } else if (adminSenderRole === 'Ketua') {
       adminName = profile.contact?.chairmanName || 'H. Lubab Habib, S.Ag (Ketua)';
     } else {
-      adminName = 'Sekretariat KUA Kedungbanteng';
+      adminName = profile.contact?.secretaryName || 'Sekretaris Paguyuban';
     }
 
     const updated = addAdminReply(
@@ -206,7 +206,7 @@ export const AdminChatView: React.FC<AdminChatViewProps> = ({
     } else if (adminSenderRole === 'Ketua') {
       adminName = `${profile.contact?.chairmanName || 'H. Lubab Habib, S.Ag'} (Ketua)`;
     } else {
-      adminName = 'Sekretariat Paguyuban Kedungbanteng';
+      adminName = `${profile.contact?.secretaryName || 'Sekretaris Paguyuban'} (Sekretariat)`;
     }
 
     const waText = `*RESPON RESMI PENGURUS PAGUYUBAN BANI P3N*\n` +

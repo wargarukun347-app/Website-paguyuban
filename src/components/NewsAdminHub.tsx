@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import NewsAdminNavigation from './NewsAdminNavigation';
 import NewsPostEditor from './NewsPostEditor';
 import NewsStatisticsPanel from './NewsStatisticsPanel';
 import NewsCommentsPanel from './NewsCommentsPanel';
+import { getAllNewsCommentsFromFirestore } from '../lib/firestoreService';
 import NewsThemePanel from './NewsThemePanel';
 import NewsSettingsPanel from './NewsSettingsPanel';
+import type { NewsComment } from '../lib/firestoreService';
 
 type NewsItem = {
   id?: string;
@@ -14,18 +16,17 @@ type NewsItem = {
   content?: string;
 };
 
-type Comment = {
-  id?: string;
-  userName?: string;
-  comment?: string;
-  createdAt?: unknown;
-};
+
 
 type Props = {
   news?: NewsItem[];
-  comments?: Comment[];
+  comments?: NewsComment[];
   initialContent?: string;
   onContentChange?: (html: string) => void;
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+  statistikContent?: React.ReactNode;
+  adsenseContent?: React.ReactNode;
   children?: React.ReactNode;
 };
 
@@ -34,9 +35,43 @@ export default function NewsAdminHub({
   comments = [],
   initialContent = '',
   onContentChange,
+  activeSection,
+  onSectionChange,
+  statistikContent,
+  adsenseContent,
   children
 }: Props) {
-  const [section, setSection] = useState('postingan');
+  const [section, setSection] = useState(
+    activeSection || 'postingan'
+  );
+
+  const [managedComments, setManagedComments] = useState<NewsComment[]>(
+    comments
+  );
+  const [commentsLoading, setCommentsLoading] = useState(false);
+
+  const loadComments = useCallback(async () => {
+    try {
+      setCommentsLoading(true);
+      const result = await getAllNewsCommentsFromFirestore();
+      setManagedComments(result);
+    } catch (error) {
+      console.error('Gagal memuat komentar berita:', error);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (section === 'komentar') {
+      loadComments();
+    }
+  }, [section, loadComments]);
+
+  const handleSectionChange = (nextSection: string) => {
+    setSection(nextSection);
+    onSectionChange?.(nextSection);
+  };
 
   return (
     <div className="space-y-4">
@@ -51,7 +86,7 @@ export default function NewsAdminHub({
 
       <NewsAdminNavigation
         active={section}
-        onChange={setSection}
+        onChange={handleSectionChange}
       />
 
       {section === 'postingan' && (
@@ -72,11 +107,35 @@ export default function NewsAdminHub({
       )}
 
       {section === 'statistik' && (
-        <NewsStatisticsPanel news={news} />
+        statistikContent || <NewsStatisticsPanel news={news} />
+      )}
+
+      {section === 'adsense' && (
+        adsenseContent || (
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900">
+              AdSense Berita
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Pengaturan AdSense untuk area berita.
+            </p>
+          </div>
+        )
       )}
 
       {section === 'komentar' && (
-        <NewsCommentsPanel comments={comments} />
+        <div className="space-y-3">
+          {commentsLoading && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+              Memuat komentar...
+            </div>
+          )}
+
+          <NewsCommentsPanel
+            comments={managedComments}
+            onChanged={loadComments}
+          />
+        </div>
       )}
 
       {section === 'tema' && (

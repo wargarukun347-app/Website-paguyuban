@@ -1,3 +1,4 @@
+import { saveAdminActivity } from '../lib/firestoreService';
 import React, { useEffect, useState } from 'react';
 import {
   CheckCircle2,
@@ -10,41 +11,90 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 
+import {
+  getNewsPortalConfigFromFirestore,
+  saveNewsPortalConfigToFirestore,
+  subscribeToNewsPortalConfig,
+} from '../lib/firestoreService';
+
 const AdSenseBeritaView: React.FC = () => {
   const [publisherId, setPublisherId] = useState('');
   const [slotId, setSlotId] = useState('');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const storedPublisher =
-      localStorage.getItem('paguyuban_adsense_publisher_id') || '';
-    const storedSlot =
-      localStorage.getItem('paguyuban_adsense_news_slot_id') || '';
+    let active = true;
 
-    setPublisherId(
-      import.meta.env.VITE_ADSENSE_CLIENT_ID ||
-        storedPublisher
+    const unsubscribe = subscribeToNewsPortalConfig(
+      (config) => {
+        if (!active) return;
+
+        const storedPublisher =
+          localStorage.getItem('paguyuban_adsense_publisher_id') || '';
+        const storedSlot =
+          localStorage.getItem('paguyuban_adsense_news_slot_id') || '';
+
+        setPublisherId(
+          import.meta.env.VITE_ADSENSE_CLIENT_ID ||
+            config.adsense.publisherId ||
+            storedPublisher
+        );
+
+        setSlotId(
+          import.meta.env.VITE_ADSENSE_NEWS_SLOT_ID ||
+            config.adsense.newsSlotId ||
+            storedSlot
+        );
+      },
+      (error) => {
+        console.error('Gagal memantau konfigurasi AdSense:', error);
+      }
     );
-    setSlotId(
-      import.meta.env.VITE_ADSENSE_NEWS_SLOT_ID ||
-        storedSlot
-    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
-  const saveConfiguration = () => {
-    localStorage.setItem(
-      'paguyuban_adsense_publisher_id',
-      publisherId.trim()
-    );
-    localStorage.setItem(
-      'paguyuban_adsense_news_slot_id',
-      slotId.trim()
-    );
-    setSaved(true);
+  const saveConfiguration = async () => {
+    try {
+      const current = await getNewsPortalConfigFromFirestore();
 
-    window.setTimeout(() => {
-      setSaved(false);
-    }, 2500);
+      await saveNewsPortalConfigToFirestore({
+        ...current,
+        adsense: {
+          publisherId: publisherId.trim(),
+          newsSlotId: slotId.trim(),
+        },
+      });
+
+      await saveAdminActivity({
+        action: 'Konfigurasi AdSense diperbarui',
+        detail: 'Publisher ID dan slot berita disimpan.',
+        module: 'Berita',
+      });
+
+      localStorage.setItem(
+        'paguyuban_adsense_publisher_id',
+        publisherId.trim()
+      );
+      localStorage.setItem(
+        'paguyuban_adsense_news_slot_id',
+        slotId.trim()
+      );
+
+      setSaved(true);
+
+      window.setTimeout(() => {
+        setSaved(false);
+      }, 2500);
+    } catch (error) {
+      console.error('Gagal menyimpan konfigurasi AdSense:', error);
+      window.alert(
+        'Konfigurasi AdSense gagal disimpan. Pastikan akun admin aktif.'
+      );
+    }
   };
 
   const configured =

@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "paguyuban-hyperdrive-test",
-  "main": "worker/hyperdrive-test.js",
+  "name": "paguyuban-news-comments-schema-migrate",
+  "main": "worker/news-comments-schema-migrate.js",
   "compatibility_date": "2026-09-05",
   "compatibility_flags": ["nodejs_compat"],
   "hyperdrive": [

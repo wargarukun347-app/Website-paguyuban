@@ -1,6 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
     <loc>https://paguyubanarisanbanip3n.my.id/berita</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/amalan-blan-robil-akhir-bakda-mld</loc>
+    <lastmod>2026-09-05T12:18:18.339Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/camat-kedngbanteng-tekankan-kedalatan-keadilan-ht-ri-desa-kebocoran</loc>
+    <lastmod>2026-09-05T14:48:42.172Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/imam-santosa-sambtan-ht-ri-wayang-klit-kebocoran</loc>
+    <lastmod>2026-09-05T15:23:15.725Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/jli-krisdianto-wayang-klit-ht-ri-kebocoran</loc>
+    <lastmod>2026-09-05T15:32:45.741Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/kepala-desa-kebocoran-eri-pjiono-wayang-klit-ht-ri</loc>
+    <lastmod>2026-09-05T15:14:44.086Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/keta-panitia-amin-pagelaran-wayang-klit-ht-ri-desa-kebocoran</loc>
+    <lastmod>2026-09-05T14:56:14.282Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/keta-rw-dirsn-yswandi-wayang-klit-ht-ri-desa-kebocoran</loc>
+    <lastmod>2026-09-05T15:05:52.273Z</lastmod>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://paguyubanarisanbanip3n.my.id/berita/ki-dimas-byt-sgino-lakon-arjno-wayang-klit-kebocoran</loc>
+    <lastmod>2026-09-05T15:56:26.442Z</lastmod>
+    <priority>0.8</priority>
   </url>
 </urlset>

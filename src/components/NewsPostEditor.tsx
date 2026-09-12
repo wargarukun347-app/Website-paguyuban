@@ -88,8 +88,8 @@ export default function NewsPostEditor({
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50 p-2">
-        <div className="flex flex-wrap items-center gap-1">
+      <div className="border-b border-slate-200 bg-slate-50 p-2 sm:p-3">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <ToolButton title="Tebal" onClick={() => command('bold')}>
             <strong>B</strong>
           </ToolButton>
@@ -129,7 +129,7 @@ export default function NewsPostEditor({
             aria-label="Format paragraf"
             defaultValue="p"
             onChange={(event) => formatBlock(event.target.value)}
-            className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
+            className="h-9 max-w-full rounded-md border border-slate-300 bg-white px-2 text-sm"
           >
             <option value="p">Paragraf</option>
             <option value="h2">Judul 2</option>
@@ -166,7 +166,7 @@ export default function NewsPostEditor({
         suppressContentEditableWarning
         onInput={emit}
         data-placeholder={placeholder}
-        className="min-h-[420px] px-5 py-5 text-[16px] leading-8 text-slate-800 outline-none empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
+        className="min-h-[360px] overflow-x-auto px-4 py-4 text-[16px] leading-8 text-slate-800 outline-none sm:min-h-[420px] sm:px-5 sm:py-5 empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)]"
       />
 
       <div className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-500">

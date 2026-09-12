@@ -38,6 +38,22 @@ interface UserDashboardViewProps {
   payments: MemberPaymentHistory[];
   lotteryWinners: LotteryWinner[];
   cashTransactions: CashTransaction[];
+  financeSummary?: {
+    totalKasMasuk: number;
+    totalKasKeluar: number;
+    saldoKasBersih: number;
+    updatedAt?: string;
+  };
+  memberFinanceSummary?: {
+    memberId: string;
+    memberName: string;
+    memberPhone: string;
+    totalCashIn: number;
+    totalCashOut: number;
+    netCash: number;
+    transactionCount: number;
+    updatedAt?: string;
+  } | null;
   profile: PaguyubanProfile;
   activeYear: number;
   onOpenReceipt: (member: Member, month: number, type: 'arisan' | 'iuran') => void;
@@ -52,6 +68,8 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
   payments,
   lotteryWinners,
   cashTransactions,
+  memberFinanceSummary,
+  financeSummary,
   profile,
   activeYear,
   onOpenReceipt,
@@ -136,10 +154,37 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
   const totalArisanTarget = 12 * 50000;
   const totalIuranTarget = 12 * 20000;
 
-  // Global transparency calculation
-  const totalKasMasuk = cashTransactions.filter((t) => t.type === 'in').reduce((s, t) => s + t.amount, 0);
-  const totalKasKeluar = cashTransactions.filter((t) => t.type === 'out').reduce((s, t) => s + t.amount, 0);
-  const saldoKasBersih = totalKasMasuk - totalKasKeluar;
+  // Global transparency calculation.
+  // Prefer realtime finance summary; retain local fallback until
+  // the authoritative summary arrives.
+  const fallbackTotalKasMasuk = cashTransactions
+    .filter((t) => t.type === 'in')
+    .reduce((s, t) => s + t.amount, 0);
+
+  const fallbackTotalKasKeluar = cashTransactions
+    .filter((t) => t.type === 'out')
+    .reduce((s, t) => s + t.amount, 0);
+
+  const memberKasMasuk =
+    memberFinanceSummary?.totalCashIn ?? 0;
+
+  const memberKasKeluar =
+    memberFinanceSummary?.totalCashOut ?? 0;
+
+  const memberSaldoKas =
+    memberFinanceSummary?.netCash ?? 0;
+
+  const totalKasMasuk = financeSummary?.updatedAt
+    ? financeSummary.totalKasMasuk
+    : fallbackTotalKasMasuk;
+
+  const totalKasKeluar = financeSummary?.updatedAt
+    ? financeSummary.totalKasKeluar
+    : fallbackTotalKasKeluar;
+
+  const saldoKasBersih = financeSummary?.updatedAt
+    ? financeSummary.saldoKasBersih
+    : totalKasMasuk - totalKasKeluar;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -208,6 +253,30 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-slate-400 font-semibold uppercase">Sekretaris</p>
+                <p className="font-bold text-slate-800 dark:text-slate-100">
+                  {profile.contact?.secretaryName || 'Sekretaris Paguyuban'}
+                </p>
+                <p className="text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                  {profile.contact?.secretaryPhone || 'Belum diatur'}
+                </p>
+              </div>
+              {profile.contact?.secretaryPhone && (
+                <a
+                  href={`https://wa.me/${profile.contact.secretaryPhone.replace(/[^0-9]/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(`Assalamu'alaikum ${profile.contact.secretaryName || 'Sekretaris Paguyuban'}, saya ${currentMember.name} (No. #${currentMember.no.toString().padStart(2, '0')}) ingin menghubungi sekretariat Paguyuban.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1"
+                  title="Chat WA Sekretaris"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="text-[11px]">Chat</span>
+                </a>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => setShowChatAdminModal(true)}
@@ -494,7 +563,7 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
                 Total Kas Masuk
               </p>
               <p className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 mt-1">
-                {formatRupiah(totalKasMasuk)}
+                {formatRupiah(memberFinanceSummary ? memberKasMasuk : totalKasMasuk)}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Setoran arisan, iuran & donasi
@@ -506,7 +575,7 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
                 Total Kas Keluar
               </p>
               <p className="text-base font-extrabold text-rose-700 dark:text-rose-400 mt-1">
-                {formatRupiah(totalKasKeluar)}
+                {formatRupiah(memberFinanceSummary ? memberKasKeluar : totalKasKeluar)}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Pencairan get & operasional
@@ -518,7 +587,7 @@ export const UserDashboardView: React.FC<UserDashboardViewProps> = ({
                 Sisa Saldo Kas Aktif
               </p>
               <p className="text-base font-extrabold text-teal-700 dark:text-teal-400 mt-1">
-                {formatRupiah(saldoKasBersih)}
+                {formatRupiah(memberFinanceSummary ? memberSaldoKas : saldoKasBersih)}
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Saldo kas berjalan aman

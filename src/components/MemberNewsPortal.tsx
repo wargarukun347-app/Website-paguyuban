@@ -2,8 +2,11 @@ import '../styles/news-xapify.css';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PUBLIC_NEWS_AUTHOR } from '../lib/newsConstants';
 import {
+  DEFAULT_NEWS_PORTAL_CONFIG,
   getPublishedNewsFromFirestore,
+  subscribeToNewsPortalConfig,
   type NewsArticle,
+  type NewsPortalThemeConfig,
 } from '../lib/firestoreService';
 
 interface NewsItem {
@@ -35,6 +38,12 @@ const categories = [
   { id: 'lifestyle', label: 'Lifestyle', source: 'antara', category: 'lifestyle' },
   { id: 'otomotif', label: 'Otomotif', source: 'antara', category: 'otomotif' },
   { id: 'hukum', label: 'Hukum', source: 'antara', category: 'hukum' },
+  {
+    id: 'kemenag',
+    label: 'Kemenag Provinsi seluruh Indonesia',
+    source: 'kemenag',
+    category: 'kemenag',
+  },
 ] as const;
 
 type CategoryId = (typeof categories)[number]['id'];
@@ -77,7 +86,7 @@ const mapFirestoreNews = (article: NewsArticle): NewsItem => ({
     article.slug || article.id
   )}`,
   pubDate: formatDate(article.publishedAt || article.createdAt),
-  author: PUBLIC_NEWS_AUTHOR, PUBLIC_NEWS_AUTHOR,
+  author: PUBLIC_NEWS_AUTHOR,
 });
 
 export const MemberNewsPortal: React.FC = () => {
@@ -101,6 +110,10 @@ export const MemberNewsPortal: React.FC = () => {
 
   const [errorPaguyuban, setErrorPaguyuban] =
     useState('');
+
+  const [newsTheme, setNewsTheme] = useState<NewsPortalThemeConfig>(
+    DEFAULT_NEWS_PORTAL_CONFIG.theme
+  );
 
   const selectedCategory = useMemo(
     () =>
@@ -172,6 +185,25 @@ export const MemberNewsPortal: React.FC = () => {
   }, [loadPaguyubanNews]);
 
   useEffect(() => {
+    const unsubscribe = subscribeToNewsPortalConfig(
+      (config) => {
+        setNewsTheme(config.theme);
+      },
+      (error) => {
+        console.warn(
+          'News theme realtime tidak tersedia, menggunakan tema default:',
+          error
+        );
+        setNewsTheme(DEFAULT_NEWS_PORTAL_CONFIG.theme);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     if (activeTab !== 'paguyuban') {
       void loadInternetNews();
     }
@@ -180,7 +212,7 @@ export const MemberNewsPortal: React.FC = () => {
   const renderPaguyubanNews = () => {
     if (loadingPaguyuban) {
       return (
-        <div className="py-12 text-center text-sm text-gray-500">
+        <div className="news-loading">
           Memuat berita paguyuban...
         </div>
       );
@@ -188,7 +220,7 @@ export const MemberNewsPortal: React.FC = () => {
 
     if (errorPaguyuban) {
       return (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
           {errorPaguyuban}
           <button
             type="button"
@@ -203,100 +235,147 @@ export const MemberNewsPortal: React.FC = () => {
 
     if (paguyubanNews.length === 0) {
       return (
-        <div className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Belum ada berita Paguyuban
-          </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Berita yang diterbitkan Admin akan otomatis
-            tampil di sini.
-          </p>
+        <div className="news-empty">
+          <h2>Belum ada berita Paguyuban</h2>
+          <p>Berita yang diterbitkan Admin akan otomatis tampil di sini.</p>
         </div>
       );
     }
 
+    const featured = paguyubanNews[0];
+    const rest = paguyubanNews.slice(1);
+
+    const featuredTitle = cleanText(featured.title);
+    const featuredDescription = cleanText(
+      featured.excerpt || featured.content
+    );
+    const featuredPath = `/berita/${encodeURIComponent(
+      featured.slug || featured.id
+    )}`;
+
     return (
-      <div className="divide-y divide-gray-200">
-        {paguyubanNews.map((item) => {
-          const title = cleanText(item.title);
-          const description = cleanText(
-            item.excerpt || item.content
-          );
+      <div className="news-xapify">
+        <article className="news-featured">
+          <a href={featuredPath} className="news-featured-image">
+            {featured.imageUrl ? (
+              <img
+                src={featured.imageUrl}
+                alt={featured.altText || featuredTitle}
+                loading="eager"
+              />
+            ) : (
+              <div className="news-image-empty" />
+            )}
+          </a>
 
-          const detailPath =
-            `/berita/${encodeURIComponent(
-              item.slug || item.id
-            )}`;
+          <div className="news-featured-content">
+            <span className="news-category">
+              {featured.category || 'Paguyuban'}
+            </span>
 
-          return (
-            <article
-              key={item.id}
-              className="flex gap-4 py-6 first:pt-2"
-            >
-              {item.imageUrl ? (
-                <a
-                  href={detailPath}
-                  className="block w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:w-48"
+            <h2 className="news-featured-title">
+              <a href={featuredPath}>{featuredTitle}</a>
+            </h2>
+
+            <div className="news-featured-meta">
+              {featured.publishedAt || featured.createdAt
+                ? formatDate(featured.publishedAt || featured.createdAt)
+                : ''}
+              {featured.publishedAt || featured.createdAt ? ' • ' : ''}
+              Oleh {PUBLIC_NEWS_AUTHOR}
+            </div>
+
+            {featuredDescription && (
+              <p className="news-featured-excerpt">
+                {featuredDescription}
+              </p>
+            )}
+
+            <a href={featuredPath} className="news-read-more">
+              Baca selengkapnya →
+            </a>
+          </div>
+        </article>
+
+        {rest.length > 0 && (
+          <div className="news-grid">
+            {rest.map((item) => {
+              const title = cleanText(item.title);
+              const description = cleanText(
+                item.excerpt || item.content
+              );
+              const detailPath = `/berita/${encodeURIComponent(
+                item.slug || item.id
+              )}`;
+
+              return (
+                <article
+                  key={item.id}
+                  className={[
+                    'news-card',
+                    newsTheme.cardStyle === 'overlay'
+                      ? 'news-card-overlay'
+                      : 'news-card-standard',
+                    newsTheme.cardDensity === 'compact'
+                      ? 'news-card-density-compact'
+                      : 'news-card-density-comfortable',
+                  ].join(' ')}
                 >
-                  <img
-                    src={item.imageUrl}
-                    alt={item.altText || title}
-                    className="h-24 w-full object-cover sm:h-32"
-                    loading="lazy"
-                  />
-                </a>
-              ) : (
-                <div className="hidden w-32 shrink-0 rounded-lg bg-gray-100 sm:block sm:w-48" />
-              )}
-
-              <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <span className="font-semibold text-blue-600">
-                    {item.category || 'Paguyuban'}
-                  </span>
-
-                  {(item.publishedAt || item.createdAt) && (
-                    <>
-                      <span>•</span>
-                      <span>
-                        {formatDate(
-                          item.publishedAt ||
-                            item.createdAt
-                        )}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                <h2 className="text-lg font-bold leading-7 text-gray-900 sm:text-xl">
-                  <a
-                    href={detailPath}
-                    className="transition-colors hover:text-blue-600"
-                  >
-                    {title}
+                  <a href={detailPath} className="news-card-image">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.altText || title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="news-image-empty" />
+                    )}
                   </a>
-                </h2>
 
-                {description && (
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">
-                    {description}
-                  </p>
-                )}
+                  <div className="news-card-content">
+                    {newsTheme.showCategory && (
+                      <span className="news-category">
+                        {item.category || 'Paguyuban'}
+                      </span>
+                    )}
 
-                <p className="mt-2 text-xs text-gray-500">
-                  Oleh {PUBLIC_NEWS_AUTHOR}
-                </p>
+                    <h2 className="news-card-title">
+                      <a href={detailPath}>{title}</a>
+                    </h2>
 
-                <a
-                  href={detailPath}
-                  className="mt-3 inline-block text-xs font-semibold text-blue-600 hover:underline"
-                >
-                  Baca berita selengkapnya →
-                </a>
-              </div>
-            </article>
-          );
-        })}
+                    {(newsTheme.showDate || newsTheme.showAuthor) && (
+                      <div className="news-card-meta">
+                        {newsTheme.showDate &&
+                        (item.publishedAt || item.createdAt)
+                          ? formatDate(item.publishedAt || item.createdAt)
+                          : ''}
+                        {newsTheme.showDate &&
+                        (item.publishedAt || item.createdAt) &&
+                        newsTheme.showAuthor
+                          ? ' • '
+                          : ''}
+                        {newsTheme.showAuthor
+                          ? `Oleh ${PUBLIC_NEWS_AUTHOR}`
+                          : ''}
+                      </div>
+                    )}
+
+                    {description && (
+                      <p className="news-card-excerpt">
+                        {description}
+                      </p>
+                    )}
+
+                    <a href={detailPath} className="news-read-more">
+                      Baca selengkapnya →
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -304,7 +383,7 @@ export const MemberNewsPortal: React.FC = () => {
   const renderInternetNews = () => {
     if (loadingInternet) {
       return (
-        <div className="py-12 text-center text-sm text-gray-500">
+        <div className="news-loading">
           Memuat berita terbaru...
         </div>
       );
@@ -312,7 +391,7 @@ export const MemberNewsPortal: React.FC = () => {
 
     if (errorInternet) {
       return (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
           {errorInternet}
           <button
             type="button"
@@ -327,135 +406,294 @@ export const MemberNewsPortal: React.FC = () => {
 
     if (internetNews.length === 0) {
       return (
-        <div className="py-12 text-center text-sm text-gray-500">
-          Belum ada berita yang dapat ditampilkan.
+        <div className="news-empty">
+          <h2>Belum ada berita yang dapat ditampilkan</h2>
+          <p>Berita terbaru belum tersedia.</p>
         </div>
       );
     }
 
+    const featured = internetNews[0];
+    const rest = internetNews.slice(1);
+
+    const featuredTitle = cleanText(featured.title);
+    const featuredDescription = cleanText(featured.description);
+
     return (
-      <div className="divide-y divide-gray-200">
-        {internetNews.map((item, index) => {
-          const title = cleanText(item.title);
-          const description = cleanText(item.description);
+      <div className="news-xapify">
+        <article className="news-featured">
+          <a
+            href={featured.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="news-featured-image"
+          >
+            {featured.image ? (
+              <img
+                src={featured.image}
+                alt={featuredTitle}
+                loading="eager"
+              />
+            ) : (
+              <div className="news-image-empty" />
+            )}
+          </a>
 
-          return (
-            <article
-              key={`${item.link}-${index}`}
-              className="flex gap-4 py-6 first:pt-2"
+          <div className="news-featured-content">
+            <span className="news-category">
+              {selectedCategory.label}
+            </span>
+
+            <h2 className="news-featured-title">
+              <a
+                href={featured.link}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {featuredTitle}
+              </a>
+            </h2>
+
+            <div className="news-featured-meta">
+              {featured.pubDate ? formatDate(featured.pubDate) : ''}
+              {featured.pubDate ? ' • ' : ''}
+              Oleh {PUBLIC_NEWS_AUTHOR}
+            </div>
+
+            {featuredDescription && (
+              <p className="news-featured-excerpt">
+                {featuredDescription}
+              </p>
+            )}
+
+            <a
+              href={featured.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="news-read-more"
             >
-              {item.image ? (
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:w-48"
+              Baca selengkapnya →
+            </a>
+          </div>
+        </article>
+
+        {rest.length > 0 && (
+          <div className="news-grid">
+            {rest.map((item, index) => {
+              const title = cleanText(item.title);
+              const description = cleanText(item.description);
+
+              return (
+                <article
+                  key={`${item.link}-${index}`}
+                  className={[
+                    'news-card',
+                    newsTheme.cardStyle === 'overlay'
+                      ? 'news-card-overlay'
+                      : 'news-card-standard',
+                    newsTheme.cardDensity === 'compact'
+                      ? 'news-card-density-compact'
+                      : 'news-card-density-comfortable',
+                  ].join(' ')}
                 >
-                  <img
-                    src={item.image}
-                    alt={title}
-                    className="h-24 w-full object-cover sm:h-32"
-                    loading="lazy"
-                  />
-                </a>
-              ) : (
-                <div className="hidden w-32 shrink-0 rounded-lg bg-gray-100 sm:block sm:w-48" />
-              )}
-
-              <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                  <span className="font-semibold text-blue-600">
-                    {selectedCategory.label}
-                  </span>
-
-                  {item.pubDate && (
-                    <>
-                      <span>•</span>
-                      <span>{formatDate(item.pubDate)}</span>
-                    </>
-                  )}
-                </div>
-
-                <h2 className="text-lg font-bold leading-7 text-gray-900 sm:text-xl">
                   <a
                     href={item.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="transition-colors hover:text-blue-600"
+                    className="news-card-image"
                   >
-                    {title}
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={title}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="news-image-empty" />
+                    )}
                   </a>
-                </h2>
 
-                {description && (
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">
-                    {description}
-                  </p>
-                )}
+                  <div className="news-card-content">
+                    {newsTheme.showCategory && (
+                      <span className="news-category">
+                        {selectedCategory.label}
+                      </span>
+                    )}
 
-                <a
-                  href={item.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-block text-xs font-semibold text-blue-600 hover:underline"
-                >
-                  Baca berita selengkapnya →
-                </a>
-              </div>
-            </article>
-          );
-        })}
+                    <h2 className="news-card-title">
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {title}
+                      </a>
+                    </h2>
+
+                    {(newsTheme.showDate || newsTheme.showAuthor) && (
+                      <div className="news-card-meta">
+                        {newsTheme.showDate && item.pubDate
+                          ? formatDate(item.pubDate)
+                          : ''}
+                        {newsTheme.showDate &&
+                        item.pubDate &&
+                        newsTheme.showAuthor
+                          ? ' • '
+                          : ''}
+                        {newsTheme.showAuthor
+                          ? `Oleh ${PUBLIC_NEWS_AUTHOR}`
+                          : ''}
+                      </div>
+                    )}
+
+                    {description && (
+                      <p className="news-card-excerpt">
+                        {description}
+                      </p>
+                    )}
+
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="news-read-more"
+                    >
+                      Baca selengkapnya →
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Berita dan Informasi
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Berita Paguyuban dan informasi terkini dari berbagai kategori.
-        </p>
+    <div className="news-container">
+      <header className="news-site-header">
+        <div className="news-header-inner">
+          <a
+            href="/anggota/berita"
+            className="news-brand"
+            onClick={(event) => {
+              event.preventDefault();
+              window.history.pushState({}, "", "/anggota/berita");
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }}
+          >
+            <span
+              className="news-brand-text"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                gap: "4px",
+              }}
+            >
+              <img
+                src="https://p84.cooltext.com/Rendered/Cool%20Text%20-%20NEWS%20SERVER%20515232448207319.png"
+                alt="NEWS SERVER"
+                style={{
+                  display: "block",
+                  width: "min(260px, 58vw)",
+                  height: "auto",
+                  maxHeight: "78px",
+                  objectFit: "contain",
+                }}
+              />
+              <img
+                src="https://r72.cooltext.com/rendered/cooltext515232361625641.png"
+                alt="Berita Informasi Masa Kini"
+                style={{
+                  display: "block",
+                  width: "min(220px, 48vw)",
+                  height: "auto",
+                  maxHeight: "48px",
+                  objectFit: "contain",
+                }}
+              />
+            </span>
+          </a>
+
+          <nav className="news-top-nav" aria-label="Navigasi berita">
+            <a className="active" href="/anggota/berita">
+              Berita
+            </a>
+            <a
+              href="/anggota/jadwal-sholat"
+              onClick={(event) => {
+                event.preventDefault();
+                window.history.pushState({}, "", "/anggota/jadwal-sholat");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+            >
+              Jadwal Sholat
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <div className="news-breadcrumb">
+        <strong>Berita Informasi Masa Kini</strong>
       </div>
 
-      <div className="overflow-x-auto border-b border-gray-200">
-        <div className="flex min-w-max gap-5">
-          <button
-            type="button"
-            onClick={() => setActiveTab("paguyuban")}
-            className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${
-              activeTab === "paguyuban"
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
-            }`}
-          >
-            Berita Paguyuban
-          </button>
-
+      <section className="news-category-bar">
+        <div className="news-category-scroll">
           {categories.map((category) => (
             <button
-              key={category.id}
               type="button"
+              key={category.id}
+              className={activeTab === category.id ? "active" : ""}
               onClick={() => setActiveTab(category.id)}
-              className={`border-b-2 px-1 pb-3 text-sm font-medium transition ${
-                activeTab === category.id
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
-              }`}
             >
               {category.label}
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      {activeTab === "paguyuban"
-        ? renderPaguyubanNews()
-        : renderInternetNews()}
+      <main className="news-layout">
+        <section className="news-main">
+          {activeTab === "paguyuban"
+            ? renderPaguyubanNews()
+            : renderInternetNews()}
+        </section>
+
+        <aside className="news-sidebar">
+          <section className="news-widget">
+            <h3>Tentang News Server</h3>
+            <p>
+              Berita Informasi Masa Kini.
+              Dapatkan informasi kegiatan, pengumuman, dan berita terkini.
+            </p>
+          </section>
+
+          {activeTab === "paguyuban" && paguyubanNews.length > 0 && (
+            <section className="news-widget">
+              <h3>Berita Terbaru</h3>
+              <div className="news-widget-news">
+                {paguyubanNews.slice(0, 4).map((item) => (
+                  <a key={item.link} href={item.link}>
+                    <strong>{cleanText(item.title)}</strong>
+                    <span>
+                      {item.pubDate ? formatDate(item.pubDate) : ""}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+        </aside>
+      </main>
+
+      <footer className="news-site-footer">
+        <span>Berita Informasi Masa Kini.</span>
+      </footer>
     </div>
-  );
+  )
+
 };
 
 export default MemberNewsPortal;

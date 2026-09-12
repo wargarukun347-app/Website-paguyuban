@@ -133,19 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Berita',
       icon: Newspaper,
     },
-    {
-      label: 'Statistik Berita',
-      icon: BarChart3,
-      badge: 'Analitik',
-      badgeColor: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300',
-    },
-    {
-      label: 'AdSense Berita',
-      icon: Megaphone,
-      badge: 'Iklan',
-      badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
-    },
-    {
+            {
       id: 'members' as TabType,
       label: 'Data Nama Anggota',
       icon: Users,

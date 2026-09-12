@@ -96,9 +96,9 @@ export const MemberChatAdminModal: React.FC<MemberChatAdminModalProps> = ({
       focus: 'Kebijakan, Kocokan Arisan, Pertemuan & Dana Sosial',
     },
     sekretariat: {
-      role: 'Sekretariat KUA',
-      name: 'Admin Layanan KUA Kedungbanteng',
-      phone: '0812-3456-7010',
+      role: 'Sekretariat Paguyuban',
+      name: profile.contact?.secretaryName || 'Sekretaris Paguyuban',
+      phone: profile.contact?.secretaryPhone || '',
       focus: 'Data Keanggotaan, Sertifikat, KTA Digital & Umum',
     },
   };

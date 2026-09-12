@@ -360,6 +360,55 @@ export async function loginWithEmailPassword(email: string, password: string): P
   }
 }
 
+const normalizeRegistrationPhone = (phone: string): string => {
+  const digits = String(phone || '').replace(/\D/g, '');
+
+  if (!digits) return '';
+
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+
+  return digits;
+};
+
+const normalizeRegistrationName = (name: string): string =>
+  String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+const findExistingMemberRegistration = async (
+  name: string,
+  phone: string
+): Promise<Member | null> => {
+  const cleanName = normalizeRegistrationName(name);
+  const cleanPhone = normalizeRegistrationPhone(phone);
+
+  if (!cleanName || !cleanPhone) return null;
+
+  try {
+    const membersSnapshot = await getDocs(collection(db, 'members'));
+
+    for (const memberDoc of membersSnapshot.docs) {
+      const member = memberDoc.data() as Partial<Member>;
+
+      const existingName = normalizeRegistrationName(member.name || '');
+      const existingPhone = normalizeRegistrationPhone(member.phone || '');
+
+      if (existingName === cleanName && existingPhone === cleanPhone) {
+        return {
+          ...(member as Member),
+          id: memberDoc.id,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Pengecekan anggota terdaftar gagal:', error);
+  }
+
+  return null;
+};
+
 /**
  * Register a new Member account (Public registration only creates 'user' role)
  */
@@ -367,6 +416,36 @@ export async function registerMember(params: RegisterMemberParams): Promise<Auth
   try {
     const cleanEmail = params.email.trim().toLowerCase();
     const cleanName = params.name.trim();
+    const cleanPhone = params.phone.trim();
+
+    // 0. Cegah pendaftaran ganda berdasarkan nama + nomor WhatsApp.
+    // Pengecekan dilakukan SEBELUM membuat akun Firebase Authentication.
+    const existingMember = await findExistingMemberRegistration(
+      cleanName,
+      cleanPhone
+    );
+
+    if (existingMember) {
+      const existingEmail =
+        typeof (existingMember as Member & { email?: string }).email === 'string'
+          ? (existingMember as Member & { email?: string }).email
+          : '';
+
+      const existingPhone = existingMember.phone || cleanPhone;
+
+      const duplicateContact =
+        existingEmail
+          ? `Email yang tercatat: ${existingEmail} • WhatsApp: ${existingPhone}`
+          : `WhatsApp yang tercatat: ${existingPhone}`;
+
+      return {
+        success: false,
+        error:
+          `Nama dan nomor WhatsApp tersebut sudah terdaftar sebagai anggota. ` +
+          `Silakan gunakan akun yang sudah terdaftar atau hubungi admin. ` +
+          duplicateContact,
+      };
+    }
 
     // 1. Create auth user with Firebase Authentication
     const cred = await createUserWithEmailAndPassword(auth, cleanEmail, params.password);
@@ -386,7 +465,7 @@ export async function registerMember(params: RegisterMemberParams): Promise<Auth
       no: Date.now() % 10000,
       name: cleanName,
       category: params.category || 'P3N',
-      phone: params.phone.trim(),
+      phone: cleanPhone,
       address: params.address?.trim() || 'Kec. Kedungbanteng, Kab. Banyumas',
       status: 'Aktif',
       isArisanParticipant: true,
@@ -415,7 +494,7 @@ export async function registerMember(params: RegisterMemberParams): Promise<Auth
       name: cleanName,
       role: assignedRole,
       memberId: memberId,
-      phoneNumber: params.phone.trim(),
+      phoneNumber: cleanPhone,
       emailVerified: fbUser.emailVerified,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -530,6 +609,13 @@ export async function logoutUser(): Promise<void> {
 export function subscribeToAuthChanges(callback: (user: AuthUser | null) => void): () => void {
   return onAuthStateChanged(auth, async (fbUser) => {
     if (!fbUser) {
+      callback(null);
+      return;
+    }
+
+    // User anonymous hanya dipakai untuk komentar publik.
+    // Jangan dianggap sebagai akun anggota/admin oleh aplikasi utama.
+    if (fbUser.isAnonymous) {
       callback(null);
       return;
     }

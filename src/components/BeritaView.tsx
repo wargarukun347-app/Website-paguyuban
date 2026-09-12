@@ -1,16 +1,23 @@
+import { saveAdminActivity } from '../lib/firestoreService';
+import { signInAnonymously } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import React, { useEffect, useState } from 'react';
 import { PUBLIC_NEWS_AUTHOR } from '../lib/newsConstants';
 import { uploadImageToCloudinary } from '../lib/cloudinaryService';
+import NewsAdSenseUnit from './NewsAdSenseUnit';
 import {
+  DEFAULT_NEWS_PORTAL_CONFIG,
   deleteNewsFromFirestore,
   getNewsCommentsFromFirestore,
   getNewsFromFirestore,
   getPublishedNewsFromFirestore,
   saveNewsCommentToFirestore,
   saveNewsToFirestore,
+  subscribeToNewsPortalConfig,
   updateNewsInFirestore,
   type NewsArticle,
   type NewsComment,
+  type NewsPortalThemeConfig,
 } from '../lib/firestoreService';
 
 interface BeritaViewProps {
@@ -64,6 +71,10 @@ const BeritaView: React.FC<BeritaViewProps> = ({
   const [saving, setSaving] = useState(false);
   const [commentSaving, setCommentSaving] = useState(false);
   const [error, setError] = useState('');
+  const [viewCount, setViewCount] = useState<number | null>(null);
+  const [newsTheme, setNewsTheme] = useState<NewsPortalThemeConfig>(
+    DEFAULT_NEWS_PORTAL_CONFIG.theme
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -116,6 +127,25 @@ const BeritaView: React.FC<BeritaViewProps> = ({
   };
 
   useEffect(() => {
+    const unsubscribe = subscribeToNewsPortalConfig(
+      (config) => {
+        setNewsTheme(config.theme);
+      },
+      (error) => {
+        console.warn(
+          'News theme realtime tidak tersedia, menggunakan tema default:',
+          error
+        );
+        setNewsTheme(DEFAULT_NEWS_PORTAL_CONFIG.theme);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     void loadNews();
   }, [isAdmin, publicMode]);
 
@@ -138,9 +168,10 @@ const BeritaView: React.FC<BeritaViewProps> = ({
       return;
     }
 
-    const siteName = 'Arisan Bani P3N - KUA Kedungbanteng';
+    const siteName =
+      'Berita Paguyuban Bani P3N KUA Kedungbanteng';
     const siteDescription =
-      'Informasi dan berita Paguyuban Bani P3N KUA Kecamatan Kedungbanteng Kabupaten Banyumas.';
+      'Berita dan informasi Paguyuban Bani P3N KUA Kecamatan Kedungbanteng Kabupaten Banyumas.';
     const origin = window.location.origin;
 
     const currentArticle =
@@ -451,6 +482,12 @@ const BeritaView: React.FC<BeritaViewProps> = ({
             ? { publishedAt: new Date() }
             : {}),
         });
+
+        await saveAdminActivity({
+          action: 'Postingan diperbarui',
+          detail: title.trim(),
+          module: 'Berita',
+        });
       } else {
         await saveNewsToFirestore({
           title: title.trim(),
@@ -473,6 +510,12 @@ const BeritaView: React.FC<BeritaViewProps> = ({
           authorName: PUBLIC_NEWS_AUTHOR,
           createdAt: new Date(),
           updatedAt: new Date(),
+        });
+
+        await saveAdminActivity({
+          action: 'Postingan dibuat',
+          detail: title.trim(),
+          module: 'Berita',
         });
       }
 
@@ -564,6 +607,12 @@ const BeritaView: React.FC<BeritaViewProps> = ({
     try {
       await deleteNewsFromFirestore(item.id);
 
+      await saveAdminActivity({
+        action: 'Postingan dihapus',
+        detail: item.title,
+        module: 'Berita',
+      });
+
       if (selectedNews?.id === item.id) {
         setSelectedNews(null);
         setComments([]);
@@ -624,6 +673,98 @@ const BeritaView: React.FC<BeritaViewProps> = ({
     };
   }, [selectedNews]);
 
+  useEffect(() => {
+    if (!selectedNews || (isAdmin && !publicMode)) {
+      setViewCount(null);
+      return;
+    }
+
+    const newsId = selectedNews.id;
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    let visitorKey = '';
+
+    try {
+      visitorKey = window.localStorage.getItem(
+        'paguyuban_news_visitor_key'
+      ) || '';
+
+      if (!visitorKey) {
+        visitorKey =
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `visitor-${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2, 12)}`;
+
+        window.localStorage.setItem(
+          'paguyuban_news_visitor_key',
+          visitorKey
+        );
+      }
+    } catch (err) {
+      console.warn('Visitor key tidak dapat disimpan:', err);
+      visitorKey =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `visitor-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 12)}`;
+    }
+
+    let cancelled = false;
+
+    const recordNewsView = async () => {
+      try {
+        const response = await fetch('/api/news-view', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            newsId,
+            visitorKey,
+          }),
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok || !payload?.success) {
+          throw new Error(
+            payload?.error || 'Gagal mencatat view berita.'
+          );
+        }
+
+        if (!cancelled) {
+          setViewCount(Number(payload.viewCount || 0));
+        }
+      } catch (err) {
+        console.warn('View berita tidak tercatat:', err);
+      }
+    };
+
+    void recordNewsView();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedNews?.id, isAdmin, publicMode]);
+
+  const ensureAnonymousAuth = async () => {
+    if (currentUser) {
+      return auth.currentUser?.uid || currentUser.id;
+    }
+
+    if (!auth.currentUser) {
+      await signInAnonymously(auth);
+    }
+
+    return auth.currentUser?.uid || '';
+  };
+
   const handleComment = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -646,10 +787,11 @@ const BeritaView: React.FC<BeritaViewProps> = ({
     try {
       await saveNewsCommentToFirestore({
         newsId: selectedNews.id,
-        userId: currentUser?.id || '',
+        userId: await ensureAnonymousAuth(),
         userName,
         comment: commentText.trim(),
         createdAt: new Date(),
+        status: 'pending',
       });
 
       setCommentText('');
@@ -660,6 +802,10 @@ const BeritaView: React.FC<BeritaViewProps> = ({
 
       const result = await getNewsCommentsFromFirestore(selectedNews.id);
       setComments(result);
+
+      if (!currentUser) {
+        setError('Komentar berhasil dikirim dan menunggu persetujuan admin.');
+      }
     } catch (err) {
       console.error('Gagal menyimpan komentar:', err);
       setError('Komentar gagal dikirim.');
@@ -682,7 +828,7 @@ const BeritaView: React.FC<BeritaViewProps> = ({
           ← Kembali ke daftar berita
         </button>
 
-        <article className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <article className="news-card news-card-overlay">
           {selectedNews.imageUrl && (
             <img
               src={selectedNews.imageUrl}
@@ -692,33 +838,41 @@ const BeritaView: React.FC<BeritaViewProps> = ({
           )}
 
           <div className="p-6">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              {selectedNews.category && (
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                  {selectedNews.category}
-                </span>
-              )}
+            {(newsTheme.showCategory || newsTheme.showDate) && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                {newsTheme.showCategory && selectedNews.category && (
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                    {selectedNews.category}
+                  </span>
+                )}
 
-              <span className="text-xs text-gray-500">
-                {formatDate(selectedNews.createdAt)}
-              </span>
-            </div>
+                {newsTheme.showDate && (
+                  <span className="text-xs text-gray-500">
+                    {formatDate(selectedNews.createdAt)}
+                  </span>
+                )}
+              </div>
+            )}
 
             <h1 className="text-2xl font-bold text-gray-800">
               {selectedNews.title}
             </h1>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Oleh {isAdmin
-                ? (selectedNews.authorName || PUBLIC_NEWS_AUTHOR)
-                : PUBLIC_NEWS_AUTHOR}
-            </p>
+            {newsTheme.showAuthor && (
+              <p className="mt-2 text-sm text-gray-500">
+                Oleh {isAdmin
+                  ? (selectedNews.authorName || PUBLIC_NEWS_AUTHOR)
+                  : PUBLIC_NEWS_AUTHOR}
+              </p>
+            )}
 
             <div className="mt-6 whitespace-pre-wrap text-sm leading-7 text-gray-700">
               {selectedNews.content}
             </div>
           </div>
         </article>
+
+        {!isAdmin && <NewsAdSenseUnit />}
 
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800">
@@ -827,6 +981,8 @@ const BeritaView: React.FC<BeritaViewProps> = ({
           {error}
         </div>
       )}
+
+      {!isAdmin && <NewsAdSenseUnit />}
 
       {isAdmin && showForm && (
         <form
@@ -1339,48 +1495,39 @@ const BeritaView: React.FC<BeritaViewProps> = ({
             return (
               <article
                 key={item.id}
-                className="border-b border-gray-200 py-7 first:pt-0 last:border-b-0"
+                className="news-card news-card-overlay"
               >
-                {item.imageUrl && (
-                  <a href={newsUrl} className="block">
-                    <img
-                      src={item.imageUrl}
-                      alt={item.altText || item.title}
-                      className="mb-5 max-h-[420px] w-full object-contain"
-                    />
-                  </a>
-                )}
+                <div className="news-card-image">
+                  {item.imageUrl ? (
+                    <a href={newsUrl} className="block h-full w-full">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.altText || item.title}
+                        loading="lazy"
+                      />
+                    </a>
+                  ) : (
+                    <div className="news-image-empty" />
+                  )}
+                </div>
 
-                <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                <div className="news-card-content">
                   {item.category && (
-                    <span className="font-semibold text-blue-600">
+                    <span className="news-category">
                       {item.category}
                     </span>
                   )}
 
-                  <span>
+                  <h2 className="news-card-title">
+                    <a href={newsUrl}>
+                      {item.title}
+                    </a>
+                  </h2>
+
+                  <p className="news-card-meta">
                     {formatDate(item.publishedAt || item.createdAt)}
-                  </span>
+                  </p>
                 </div>
-
-                <h2 className="text-2xl font-bold leading-tight text-gray-900 md:text-3xl">
-                  <a
-                    href={newsUrl}
-                    className="transition-colors hover:text-blue-600"
-                  >
-                    {item.title}
-                  </a>
-                </h2>
-
-                {item.excerpt ? (
-                  <p className="mt-3 text-base leading-7 text-gray-600">
-                    {item.excerpt}
-                  </p>
-                ) : (
-                  <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-base leading-7 text-gray-600">
-                    {item.content}
-                  </p>
-                )}
               </article>
             );
           })}

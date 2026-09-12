@@ -182,3 +182,60 @@
     border-right-color: var(--border);
   }
 }
+
+/* ============================================================
+   LOGIN TECHNOLOGY BACKGROUND
+   ============================================================ */
+
+.login-tech-background {
+  isolation: isolate;
+}
+
+.login-tech-background-image {
+  animation: login-tech-kenburns 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes login-tech-kenburns {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.09);
+  }
+}
+
+.login-tech-background::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(16, 185, 129, 0.14),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 80% 75%,
+      rgba(14, 165, 233, 0.12),
+      transparent 38%
+    );
+  animation: login-tech-glow 10s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes login-tech-glow {
+  0% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-tech-background-image,
+  .login-tech-background::after {
+    animation: none;
+  }
+}

@@ -1470,7 +1470,47 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Nama Sekretaris
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.contact.secretaryName || ''}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          contact: {
+                            ...editForm.contact,
+                            secretaryName: e.target.value
+                          }
+                        })}
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-white"
+                        placeholder="Nama Sekretaris Paguyuban"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        No WhatsApp Sekretaris
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.contact.secretaryPhone || ''}
+                        onChange={(e) => setEditForm({
+                          ...editForm,
+                          contact: {
+                            ...editForm.contact,
+                            secretaryPhone: e.target.value
+                          }
+                        })}
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-white"
+                        placeholder="08xxxxxxxxxx"
+                      />
+                    </div>
+                  </div>
+
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                         Nama Ketua Paguyuban

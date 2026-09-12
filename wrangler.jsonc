@@ -1,17 +1,24 @@
 {
-	"name": "paguyuban-member-news",
-	"main": "worker/member-news.js",
-	"compatibility_date": "2026-09-05",
-	"routes": [
-		{
-			"pattern": "paguyubanarisanbanip3n.my.id/api/member-news*",
-			"zone_name": "paguyubanarisanbanip3n.my.id"
-		}
-	],
-	"hyperdrive": [
-		{
-			"binding": "HYPERDRIVE",
-			"id": "a19f45c7f6264770acbd486e834bc51c"
-		}
-	]
+  "name": "paguyuban-member-news",
+  "main": "worker/member-news.js",
+  "compatibility_date": "2026-09-05",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "routes": [
+    {
+      "pattern": "paguyubanarisanbanip3n.my.id/api/member-news*",
+      "zone_name": "paguyubanarisanbanip3n.my.id"
+    },
+    {
+      "pattern": "paguyubanarisanbanip3n.my.id/api/news-view*",
+      "zone_name": "paguyubanarisanbanip3n.my.id"
+    }
+  ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "a19f45c7f6264770acbd486e834bc51c"
+    }
+  ]
 }

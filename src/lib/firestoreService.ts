@@ -17,14 +17,275 @@ export const COLLECTIONS = {
   MEMBERS: 'members',
   PAYMENTS: 'payments',
   CASH_TRANSACTIONS: 'cash_transactions',
+  MEMBER_FINANCE: 'member_finance',
   LOTTERY_WINNERS: 'lottery_winners',
   NEWS: 'news',
   NEWS_COMMENTS: 'news_comments',
   APP_STATE: 'app_state',
+  ADMIN_ACTIVITY: 'admin_activity',
 };
 
 const PROFILE_DOC_ID = 'paguyuban_profile';
 const ADZAN_SETTINGS_DOC_ID = 'adzan_settings';
+const FINANCE_SUMMARY_DOC_ID = 'paguyuban_finance_summary';
+
+const NEWS_PORTAL_CONFIG_DOC_ID = 'news_portal_config';
+
+export interface NewsPortalThemeConfig {
+  cardStyle: 'overlay' | 'standard';
+  cardDensity: 'compact' | 'comfortable';
+  showCategory: boolean;
+  showAuthor: boolean;
+  showDate: boolean;
+}
+
+export interface NewsPortalSettingsConfig {
+  publicAuthor: string;
+  defaultCategory: string;
+  seoTitle: string;
+  metaDescription: string;
+  focusKeyword: string;
+}
+
+export interface NewsPortalAdsenseConfig {
+  publisherId: string;
+  newsSlotId: string;
+}
+
+export interface NewsPortalConfig {
+  theme: NewsPortalThemeConfig;
+  settings: NewsPortalSettingsConfig;
+  adsense: NewsPortalAdsenseConfig;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+
+export interface AdminActivity {
+  id: string;
+  action: string;
+  detail: string;
+  module: string;
+  adminUid: string;
+  adminEmail: string;
+  adminName: string;
+  device: string;
+  timestamp: string;
+}
+
+const ADMIN_ACTIVITY_DOC_ID = 'latest';
+
+const getAdminDeviceLabel = (): string => {
+  if (typeof navigator === 'undefined') return 'Server';
+
+  const platform =
+    String(navigator.platform || '').trim();
+
+  const userAgent =
+    String(navigator.userAgent || '').trim();
+
+  if (platform) {
+    return platform;
+  }
+
+  if (userAgent) {
+    return userAgent.slice(0, 120);
+  }
+
+  return 'Perangkat Admin';
+};
+
+export const saveAdminActivity = async (
+  activity: Partial<AdminActivity> & {
+    action: string;
+    detail?: string;
+    module?: string;
+  }
+): Promise<void> => {
+  try {
+    const { getAuth } = await import('firebase/auth');
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    const timestamp = new Date().toISOString();
+
+    const payload: AdminActivity = {
+      id: ADMIN_ACTIVITY_DOC_ID,
+      action: activity.action,
+      detail: activity.detail || '',
+      module: activity.module || 'Sistem',
+      adminUid: user.uid,
+      adminEmail: user.email || '',
+      adminName:
+        user.displayName ||
+        user.email ||
+        'Admin',
+      device: getAdminDeviceLabel(),
+      timestamp,
+    };
+
+    await setDoc(
+      doc(
+        db,
+        COLLECTIONS.APP_STATE,
+        `admin_activity_${ADMIN_ACTIVITY_DOC_ID}`
+      ),
+      sanitizeForFirestore(payload),
+      { merge: true }
+    );
+  } catch (error) {
+    console.warn(
+      'Aktivitas admin tidak dapat disimpan:',
+      error
+    );
+  }
+};
+
+export const subscribeAdminActivity = (
+  callback: (activity: AdminActivity | null) => void
+) => {
+  return onSnapshot(
+    doc(
+      db,
+      COLLECTIONS.APP_STATE,
+      `admin_activity_${ADMIN_ACTIVITY_DOC_ID}`
+    ),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        callback(null);
+        return;
+      }
+
+      callback(snapshot.data() as AdminActivity);
+    },
+    (error) => {
+      console.warn(
+        'Aktivitas admin realtime tidak dapat dibaca:',
+        error
+      );
+      callback(null);
+    }
+  );
+};
+
+export const DEFAULT_NEWS_PORTAL_CONFIG: NewsPortalConfig = {
+  theme: {
+    cardStyle: 'overlay',
+    cardDensity: 'comfortable',
+    showCategory: true,
+    showAuthor: true,
+    showDate: true,
+  },
+  settings: {
+    publicAuthor: 'Kresno Gadhing Pramudhyo',
+    defaultCategory: 'Paguyuban',
+    seoTitle: 'Berita Paguyuban Bani P3N KUA Kedungbanteng',
+    metaDescription:
+      'Berita dan informasi Paguyuban Bani P3N KUA Kecamatan Kedungbanteng Kabupaten Banyumas.',
+    focusKeyword: 'Paguyuban Bani P3N Kedungbanteng',
+  },
+  adsense: {
+    publisherId: '',
+    newsSlotId: '',
+  },
+  updatedAt: '',
+  updatedBy: '',
+};
+
+export async function getNewsPortalConfigFromFirestore(): Promise<NewsPortalConfig> {
+  const snapshot = await getDoc(
+    doc(db, COLLECTIONS.APP_STATE, NEWS_PORTAL_CONFIG_DOC_ID)
+  );
+
+  if (!snapshot.exists()) {
+    return DEFAULT_NEWS_PORTAL_CONFIG;
+  }
+
+  const data = snapshot.data() as Partial<NewsPortalConfig>;
+
+  return {
+    ...DEFAULT_NEWS_PORTAL_CONFIG,
+    ...data,
+    theme: {
+      ...DEFAULT_NEWS_PORTAL_CONFIG.theme,
+      ...(data.theme || {}),
+    },
+    settings: {
+      ...DEFAULT_NEWS_PORTAL_CONFIG.settings,
+      ...(data.settings || {}),
+    },
+    adsense: {
+      ...DEFAULT_NEWS_PORTAL_CONFIG.adsense,
+      ...(data.adsense || {}),
+    },
+  };
+}
+
+export async function saveNewsPortalConfigToFirestore(
+  config: NewsPortalConfig
+): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error('Admin belum terautentikasi.');
+  }
+
+  await setDoc(
+    doc(db, COLLECTIONS.APP_STATE, NEWS_PORTAL_CONFIG_DOC_ID),
+    sanitizeForFirestore({
+      ...config,
+      updatedAt: new Date().toISOString(),
+      updatedBy: auth.currentUser.uid,
+    }),
+    { merge: true }
+  );
+}
+
+export function subscribeToNewsPortalConfig(
+  callback: (config: NewsPortalConfig) => void,
+  onError?: (error: Error) => void
+): () => void {
+  return onSnapshot(
+    doc(db, COLLECTIONS.APP_STATE, NEWS_PORTAL_CONFIG_DOC_ID),
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        callback(DEFAULT_NEWS_PORTAL_CONFIG);
+        return;
+      }
+
+      const data = snapshot.data() as Partial<NewsPortalConfig>;
+
+      callback({
+        ...DEFAULT_NEWS_PORTAL_CONFIG,
+        ...data,
+        theme: {
+          ...DEFAULT_NEWS_PORTAL_CONFIG.theme,
+          ...(data.theme || {}),
+        },
+        settings: {
+          ...DEFAULT_NEWS_PORTAL_CONFIG.settings,
+          ...(data.settings || {}),
+        },
+        adsense: {
+          ...DEFAULT_NEWS_PORTAL_CONFIG.adsense,
+          ...(data.adsense || {}),
+        },
+      });
+    },
+    (error) => {
+      console.warn('News portal config snapshot listener:', error);
+      onError?.(error);
+    }
+  );
+}
+
+
+export interface FinanceSummary {
+  totalKasMasuk: number;
+  totalKasKeluar: number;
+  saldoKasBersih: number;
+  updatedAt: string;
+}
 
 /**
  * Recursively sanitizes data before sending to Firestore by removing any keys with `undefined` values.
@@ -292,6 +553,99 @@ export async function saveProfileToFirestore(profile: PaguyubanProfile): Promise
 }
 
 /**
+ * Save realtime finance summary to Firestore.
+ *
+ * Summary is intentionally stored in app_state so authenticated
+ * members can read the aggregate balance without accessing the
+ * admin-only cash_transactions collection.
+ */
+
+export interface MemberFinanceSummary {
+  memberId: string;
+  memberName: string;
+  memberPhone: string;
+  totalCashIn: number;
+  totalCashOut: number;
+  netCash: number;
+  transactionCount: number;
+  updatedAt: string;
+}
+
+export async function saveMemberFinanceSummaryToFirestore(
+  summary: MemberFinanceSummary
+): Promise<void> {
+  if (!auth.currentUser) return;
+
+  try {
+    const docRef = doc(
+      db,
+      COLLECTIONS.MEMBER_FINANCE,
+      summary.memberId
+    );
+
+    await setDoc(
+      docRef,
+      sanitizeForFirestore(summary),
+      { merge: true }
+    );
+  } catch (error: any) {
+    if (
+      error?.code === 'permission-denied' ||
+      error?.message?.includes('insufficient permissions')
+    ) {
+      console.warn(
+        'Member finance Firestore permission restricted:',
+        error?.message
+      );
+      return;
+    }
+
+    console.error(
+      'Error saving member finance summary:',
+      error
+    );
+  }
+}
+
+export async function saveFinanceSummaryToFirestore(
+  summary: FinanceSummary
+): Promise<void> {
+  if (!auth.currentUser) {
+    return;
+  }
+
+  try {
+    const docRef = doc(
+      db,
+      COLLECTIONS.APP_STATE,
+      FINANCE_SUMMARY_DOC_ID
+    );
+
+    await setDoc(
+      docRef,
+      sanitizeForFirestore(summary),
+      { merge: true }
+    );
+  } catch (error: any) {
+    if (
+      error?.code === 'permission-denied' ||
+      error?.message?.includes('insufficient permissions')
+    ) {
+      console.warn(
+        'Finance summary Firestore permission restricted:',
+        error?.message
+      );
+      return;
+    }
+
+    console.error(
+      'Error saving finance summary to Firestore:',
+      error
+    );
+  }
+}
+
+/**
  * Seed initial data if Firestore is empty
  */
 export async function seedInitialDataIfEmpty(
@@ -442,6 +796,9 @@ export interface NewsComment {
   userName: string;
   comment: string;
   createdAt: Date;
+  status?: 'pending' | 'approved' | 'hidden';
+  moderatedBy?: string;
+  moderatedAt?: Date;
 }
 
 // Mengambil seluruh berita.
@@ -614,25 +971,37 @@ export async function deleteNewsFromFirestore(
 export async function getNewsCommentsFromFirestore(
   newsId: string
 ): Promise<NewsComment[]> {
-  const snapshot = await getDocs(
-    collection(db, COLLECTIONS.NEWS_COMMENTS)
+  // Publik/anggota hanya membaca komentar yang sudah disetujui.
+  // Query status dilakukan di Firestore agar pending/hidden tidak ikut terbaca.
+  const commentsSnapshot = await getDocs(
+    query(
+      collection(db, COLLECTIONS.NEWS_COMMENTS),
+      where('status', '==', 'approved')
+    )
   );
 
   const comments: NewsComment[] = [];
 
-  snapshot.forEach((docSnap) => {
-    const data = docSnap.data();
+  commentsSnapshot.forEach((commentDoc) => {
+    const data = commentDoc.data();
 
     if (data.newsId === newsId) {
+      const status = 'approved';
+
       comments.push({
-        id: docSnap.id,
+        id: commentDoc.id,
         newsId: data.newsId || newsId,
         userId: data.userId || '',
-        userName: data.userName || 'Anggota',
+        userName: data.userName || 'Pengunjung',
         comment: data.comment || '',
         createdAt: data.createdAt?.toDate
           ? data.createdAt.toDate()
           : new Date(data.createdAt || Date.now()),
+        status,
+        moderatedBy: data.moderatedBy || undefined,
+        moderatedAt: data.moderatedAt?.toDate
+          ? data.moderatedAt.toDate()
+          : undefined,
       });
     }
   });
@@ -644,7 +1013,91 @@ export async function getNewsCommentsFromFirestore(
   return comments;
 }
 
-// Menambahkan komentar anggota.
+/**
+ * Mengambil SEMUA komentar untuk panel admin.
+ * Hanya dipanggil oleh area admin.
+ */
+export async function getAllNewsCommentsFromFirestore(): Promise<NewsComment[]> {
+  const commentsSnapshot = await getDocs(
+    collection(db, COLLECTIONS.NEWS_COMMENTS)
+  );
+
+  const comments: NewsComment[] = [];
+
+  commentsSnapshot.forEach((commentDoc) => {
+    const data = commentDoc.data();
+
+    comments.push({
+      id: commentDoc.id,
+      newsId: data.newsId || '',
+      userId: data.userId || '',
+      userName: data.userName || 'Pengunjung',
+      comment: data.comment || '',
+      createdAt: data.createdAt?.toDate
+        ? data.createdAt.toDate()
+        : new Date(data.createdAt || Date.now()),
+      status: data.status || 'approved',
+      moderatedBy: data.moderatedBy || undefined,
+      moderatedAt: data.moderatedAt?.toDate
+        ? data.moderatedAt.toDate()
+        : undefined,
+    });
+  });
+
+  comments.sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  );
+
+  return comments;
+}
+
+/**
+ * Moderasi komentar oleh admin.
+ */
+export async function moderateNewsComment(
+  commentId: string,
+  status: 'pending' | 'approved' | 'hidden'
+): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error('Admin belum terautentikasi.');
+  }
+
+  const commentRef = doc(
+    db,
+    COLLECTIONS.NEWS_COMMENTS,
+    commentId
+  );
+
+  await setDoc(
+    commentRef,
+    sanitizeForFirestore({
+      status,
+      moderatedBy: auth.currentUser.uid,
+      moderatedAt: new Date(),
+    }),
+    { merge: true }
+  );
+}
+
+/**
+ * Menghapus komentar oleh admin.
+ */
+export async function deleteNewsCommentFromFirestore(
+  commentId: string
+): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error('Admin belum terautentikasi.');
+  }
+
+  const commentRef = doc(
+    db,
+    COLLECTIONS.NEWS_COMMENTS,
+    commentId
+  );
+
+  await deleteDoc(commentRef);
+}
+
 export async function saveNewsCommentToFirestore(
   comment: Omit<NewsComment, 'id'>
 ): Promise<string> {
@@ -654,7 +1107,10 @@ export async function saveNewsCommentToFirestore(
 
   await setDoc(
     commentRef,
-    sanitizeForFirestore(comment)
+    sanitizeForFirestore({
+      ...comment,
+      status: comment.status || 'pending',
+    })
   );
 
   return commentRef.id;

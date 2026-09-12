@@ -47,6 +47,7 @@ export interface CashTransaction {
   description: string;
   memberId?: string;
   memberName?: string;
+  memberPhone?: string;
   receiptNo: string;
   sourceOrRecipient?: string;
   paymentMethod?: 'Tunai' | 'Transfer Bank' | 'E-Wallet';
@@ -102,6 +103,8 @@ export interface PaguyubanProfile {
     address: string;
     treasurerName: string;
     treasurerPhone: string;
+    secretaryName: string;
+    secretaryPhone: string;
     chairmanName: string;
     chairmanPhone: string;
     email: string;

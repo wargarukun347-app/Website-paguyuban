@@ -687,6 +687,8 @@ export const INITIAL_PAGUYUBAN_PROFILE: PaguyubanProfile = {
     address: 'KUA Kecamatan Kedungbanteng, Jl. Raya Kedungbanteng, Kab. Banyumas, Jawa Tengah (Kode Pos: 53152)',
     treasurerName: 'Darsito',
     treasurerPhone: '0812-3456-7001',
+    secretaryName: 'Sekretaris Paguyuban',
+    secretaryPhone: '',
     chairmanName: 'Imam Husen, S.Ag.',
     chairmanPhone: '0812-3456-7010',
     email: 'kua.kedungbanteng@kemenag.go.id'

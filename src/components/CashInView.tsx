@@ -46,6 +46,11 @@ interface CashInViewProps {
   onAddTransaction: (tx: Omit<CashTransaction, 'id' | 'type'>) => void;
   onDeleteTransaction: (id: string) => void;
   onSyncFinance?: () => Promise<any>;
+  members?: Array<{
+    id: string;
+    name?: string;
+    phone?: string;
+  }>;
 }
 
 export const CashInView: React.FC<CashInViewProps> = ({
@@ -54,6 +59,7 @@ export const CashInView: React.FC<CashInViewProps> = ({
   onAddTransaction,
   onDeleteTransaction,
   onSyncFinance,
+  members = [],
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -68,6 +74,8 @@ export const CashInView: React.FC<CashInViewProps> = ({
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [formDescription, setFormDescription] = useState('');
   const [formSource, setFormSource] = useState('');
+  const [formMemberId, setFormMemberId] = useState('');
+  const selectedMember = members.find((member) => member.id === formMemberId);
   const [formMethod, setFormMethod] = useState<'Tunai' | 'Transfer Bank' | 'E-Wallet'>('Tunai');
 
   const inTransactions = transactions.filter((t) => t.type === 'in');
@@ -188,6 +196,12 @@ export const CashInView: React.FC<CashInViewProps> = ({
       date: formDate,
       description: formDescription,
       sourceOrRecipient: formSource || 'Anggota Paguyuban',
+
+      memberId: selectedMember?.id,
+
+      memberName: selectedMember?.name,
+
+      memberPhone: selectedMember?.phone,
       receiptNo,
       paymentMethod: formMethod,
     });
@@ -197,6 +211,8 @@ export const CashInView: React.FC<CashInViewProps> = ({
     setFormAmount('');
     setFormDescription('');
     setFormSource('');
+
+    setFormMemberId('');
   };
 
   const handleExportCSV = () => {
@@ -768,7 +784,26 @@ export const CashInView: React.FC<CashInViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <div className="mb-4">
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Anggota Paguyuban
+                  </label>
+                  <select
+                    value={formMemberId}
+                    onChange={(e) => setFormMemberId(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-2.5 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="">-- Tidak dikaitkan ke anggota --</option>
+                    {members.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name || 'Tanpa Nama'}
+                        {member.phone ? ` — ${member.phone}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Sumber Dana / Penyetor
                   </label>
                   <input

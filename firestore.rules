@@ -193,6 +193,21 @@ service cloud.firestore {
     // - Authenticated users can read organization profile and official info.
     // - Unauthenticated users CANNOT access.
     // - Modifying profile and configuration is strictly Admin-only.
+    match /member_finance/{memberId} {
+      allow get: if isSignedIn() && (
+        isAdmin() ||
+        (
+          exists(/databases/$(database)/documents/members/$(memberId)) &&
+          get(/databases/$(database)/documents/members/$(memberId)).data.keys().hasAny(['userId']) &&
+          get(/databases/$(database)/documents/members/$(memberId)).data.userId == request.auth.uid
+        )
+      );
+
+      allow list: if isSignedIn() && isAdmin();
+
+      allow create, update, delete: if isSignedIn() && isAdmin();
+    }
+
     match /app_state/{stateId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
@@ -264,23 +279,22 @@ service cloud.firestore {
   }
 
   // 10. NEWS COMMENTS / KOMENTAR BERITA
-  // Pengguna yang sudah login dapat membaca dan membuat komentar.
-  // Admin juga dapat membaca dan mengelola komentar.
+  // Komentar baru masuk sebagai "pending".
+  // Publik dan anggota hanya dapat membaca komentar "approved".
+  // Admin dapat membaca dan memoderasi seluruh komentar.
   match /news_comments/{commentId} {
-    allow read: if isSignedIn();
+    allow read: if isAdmin()
+      || (isSignedIn() && resource.data.status == 'approved');
 
     allow create: if isSignedIn()
-      && request.resource.data.userId == request.auth.uid;
+      && request.resource.data.userId == request.auth.uid
+      && request.resource.data.status == 'pending';
 
-    allow update: if isSignedIn() && (
-      isAdmin() ||
-      resource.data.userId == request.auth.uid
-    );
+    // Perubahan status/moderasi hanya boleh dilakukan admin.
+    allow update: if isSignedIn() && isAdmin();
 
-    allow delete: if isSignedIn() && (
-      isAdmin() ||
-      resource.data.userId == request.auth.uid
-    );
+    // Penghapusan komentar hanya boleh dilakukan admin.
+    allow delete: if isSignedIn() && isAdmin();
   }
 
 match /{document=**} {
