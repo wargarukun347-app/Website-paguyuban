@@ -3,24 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berita News Server - Paguyuban Bani P3N</title>
+    <title>Portal Berita & Kabar Terkini - News Server Paguyuban</title>
+    <meta name="description" content="Informasi dan berita terbaru seputar Kemenag Provinsi seluruh Indonesia dan kegiatan Paguyuban.">
     <link rel="stylesheet" href="/news.css">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9689921412010430" crossorigin="anonymous"></script>
 </head>
-<body>
-    <h1>Berita Terkini News Server</h1>
-    
-    <!-- Kode Iklan Google Adsense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9689921412010430"
-         crossorigin="anonymous"></script>
-    <!-- iklan -->
-    <ins class="adsbygoogle"
-         style="display:block"
-         data-ad-client="ca-pub-9689921412010430"
-         data-ad-slot="5945959180"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-    <script>
-         (adsbygoogle = window.adsbygoogle || []).push({});
-    </script>
+<body style="background-color: #f8fafc; margin: 0; padding: 0; font-family: 'Poppins', sans-serif;">
+    <header style="background: #0f172a; color: white; padding: 1rem; text-align: center;">
+        <h1 style="margin: 0; font-size: 1.5rem;">Tentang News Server</h1>
+        <p style="margin: 5px 0 0; font-size: 0.85rem; color: #94a3b8;">Layanan Informasi & Kabar Terkini Kemenag Provinsi Se-Indonesia</p>
+    </header>
+
+    <!-- Unit Iklan Google Adsense Atas -->
+    <div style="max-width: 1200px; margin: 15px auto; padding: 0 10px; text-align: center;">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-9689921412010430"
+             data-ad-slot="5945959180"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
+    <!-- Container Utama Berita -->
+    <main id="news-container" style="max-width: 1200px; margin: 20px auto; padding: 0 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <!-- Artikel Berita akan Di-render via JavaScript / Firebase -->
+    </main>
+
+    <script type="module" src="/app-sync.js"></script>
 </body>
 </html>
