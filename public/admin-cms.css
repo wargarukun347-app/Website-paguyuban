@@ -1,0 +1,46 @@
+/* Styling CMS Admin & Rich Text Editor Ala Blogspot */
+.cms-editor-toolbar {
+    display: flex;
+    gap: 8px;
+    background: #f1f5f9;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px 6px 0 0;
+}
+.cms-editor-toolbar button {
+    background: #ffffff;
+    border: 1px solid #94a3b8;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.cms-editor-toolbar button:hover {
+    background: #e2e8f0;
+}
+.cms-editor-content {
+    min-height: 250px;
+    border: 1px solid #cbd5e1;
+    border-top: none;
+    padding: 12px;
+    border-radius: 0 0 6px 6px;
+    background: #ffffff;
+}
+
+/* Tab Menu Navigasi Admin CMS */
+.cms-nav-tabs {
+    display: flex;
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 20px;
+}
+.cms-tab-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #64748b;
+    border-bottom: 2px solid transparent;
+}
+.cms-tab-item.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+}
