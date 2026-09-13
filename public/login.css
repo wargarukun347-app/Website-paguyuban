@@ -1,0 +1,20 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    background: url('https://static.vecteezy.com/system/resources/previews/028/241/446/non_2x/screen-technology-background-use-the-login-to-access-the-system-it-is-a-illustration-designed-to-look-modern-and-hi-tech-suitable-for-work-related-to-technology-vector.jpg') no-repeat center center fixed;
+    background-size: cover;
+    animation: moveBg 20s infinite alternate linear;
+}
+@keyframes moveBg {
+    0% { background-position: 0% 50%; transform: scale(1); }
+    100% { background-position: 100% 50%; transform: scale(1.05); }
+}
+.login-card {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+}
