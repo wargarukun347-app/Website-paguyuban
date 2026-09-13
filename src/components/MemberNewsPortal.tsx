@@ -1,6 +1,7 @@
 import '../styles/news-xapify.css';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PUBLIC_NEWS_AUTHOR } from '../lib/newsConstants';
+import NewsAdSenseUnit from './NewsAdSenseUnit';
 import {
   DEFAULT_NEWS_PORTAL_CONFIG,
   getPublishedNewsFromFirestore,
@@ -296,6 +297,8 @@ export const MemberNewsPortal: React.FC = () => {
             </a>
           </div>
         </article>
+
+        <NewsAdSenseUnit />
 
         {rest.length > 0 && (
           <div className="news-grid">

@@ -146,6 +146,10 @@ function getPublicNewsPath() {
 
   const path = window.location.pathname.replace(/\/+$/, '') || '/';
 
+  if (path === '/anggota/berita') {
+    return { type: 'member' as const, slug: null };
+  }
+
   if (path === '/berita') {
     return { type: 'list' as const, slug: null };
   }
@@ -1526,6 +1530,14 @@ const handleSelectTab = useCallback((tab: TabType) => {
 
   // 2. If not logged in, render the Secure Authentication Screen (Login, Register, Forgot Password)
   if (publicNewsRoute) {
+    if (publicNewsRoute.type === 'member') {
+      return (
+        <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+          <MemberNewsPortal />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
         <BeritaView
