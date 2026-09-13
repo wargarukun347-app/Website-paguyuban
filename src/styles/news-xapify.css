@@ -2247,3 +2247,116 @@
     height: 180px;
   }
 }
+
+/* ============================================================
+   PAGUYUBAN — PUBLIC/MEMBER NEWS CARD FINAL OVERRIDE
+   ============================================================ */
+
+.news-xapify .news-card,
+.news-xapify .post-card,
+.news-xapify article.news-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.news-xapify .news-card img,
+.news-xapify .post-card img,
+.news-xapify article.news-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 190px;
+  object-fit: cover;
+  object-position: center;
+  transition: transform .45s ease;
+}
+
+.news-xapify .news-card:hover img,
+.news-xapify .post-card:hover img,
+.news-xapify article.news-card:hover img {
+  transform: scale(1.035);
+}
+
+.news-xapify .news-card-overlay {
+  position: relative;
+  isolation: isolate;
+  min-height: 220px;
+  background: #111827;
+}
+
+.news-xapify .news-card-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to top,
+      rgba(0,0,0,.82) 0%,
+      rgba(0,0,0,.48) 34%,
+      rgba(0,0,0,.08) 72%,
+      rgba(0,0,0,.02) 100%
+    );
+}
+
+.news-xapify .news-card-overlay > * {
+  position: relative;
+  z-index: 2;
+}
+
+.news-xapify .news-card-overlay .entry-category,
+.news-xapify .news-card-overlay [class*="category"] {
+  font-size: 9px !important;
+  line-height: 1.2;
+  letter-spacing: .04em;
+}
+
+.news-xapify .news-card-overlay h2,
+.news-xapify .news-card-overlay h3,
+.news-xapify .news-card-overlay .news-title {
+  font-size: clamp(13px, 1.45vw, 18px) !important;
+  line-height: 1.22 !important;
+  margin-bottom: .25rem;
+}
+
+.news-xapify .news-card-overlay p,
+.news-xapify .news-card-overlay .excerpt {
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+}
+
+@media (max-width: 640px) {
+  .news-xapify .news-card-overlay {
+    min-height: 190px;
+  }
+
+  .news-xapify .news-card-overlay h2,
+  .news-xapify .news-card-overlay h3,
+  .news-xapify .news-card-overlay .news-title {
+    font-size: 13px !important;
+  }
+
+  .news-xapify .news-card-overlay p,
+  .news-xapify .news-card-overlay .excerpt {
+    font-size: 9px !important;
+  }
+}
+
+.news-main .adsbygoogle {
+  width: 100% !important;
+  max-width: 100%;
+  min-height: 90px;
+}
+
+@media (max-width: 640px) {
+  .news-main .adsbygoogle {
+    min-height: 70px;
+  }
+}
+
+@media (max-width: 360px) {
+  .news-main .adsbygoogle {
+    min-height: 60px;
+  }
+}

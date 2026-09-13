@@ -4,10 +4,10 @@ const NewsAdSenseUnit: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
 
   const publisherId =
-    String(import.meta.env.VITE_ADSENSE_CLIENT_ID || '').trim();
+    String(import.meta.env.VITE_ADSENSE_CLIENT_ID || 'ca-pub-9689921412010430').trim();
 
   const slotId =
-    String(import.meta.env.VITE_ADSENSE_NEWS_SLOT_ID || '').trim();
+    String(import.meta.env.VITE_ADSENSE_NEWS_SLOT_ID || '5945959180').trim();
 
   useEffect(() => {
     const validPublisher =

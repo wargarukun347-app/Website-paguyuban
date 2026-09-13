@@ -91,6 +91,30 @@ const mapFirestoreNews = (article: NewsArticle): NewsItem => ({
 });
 
 export const MemberNewsPortal: React.FC = () => {
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Berita Paguyuban — News Server';
+
+    const setMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute('name', name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+    };
+
+    setMeta(
+      'description',
+      'Portal berita Paguyuban: berita Paguyuban dan berita terkini dari berbagai kategori.'
+    );
+
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
+
   const [activeTab, setActiveTab] =
     useState<PortalTab>('paguyuban');
 
