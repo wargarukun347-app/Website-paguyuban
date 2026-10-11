@@ -6,7 +6,7 @@ import { getPublishedNews, searchPublishedNews, NewsRecord } from "./lib/newsSer
 import LoginPage from "./pages/LoginPage";
 import AdminDashboard from "./pages/admin/Dashboard";
 import MemberDashboard from "./pages/MemberDashboard";
-
+import SchedulePage from "./pages/SchedulePage"
 type News = Pick<NewsRecord, "id" | "title" | "slug" | "excerpt" | "content" | "featured_image" | "published_at">;
 type Page = "home" | "news" | "about" | "contact" | "privacy" | "disclaimer" | "terms" | "login" | "admin" | "member";
 type Profile = { id: string; email: string | null; full_name: string | null; role: "admin" | "user" };
